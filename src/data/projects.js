@@ -1,5 +1,16 @@
 /** All project data keyed by id, one entry per building. */
 export const projects = {
+  particleAi: {
+    id: 'particleAi',
+    title: 'Particle AI',
+    district: 'Software Gulch',
+    description:
+      'AI particle assistant dashboard — speak or type to an animated particle cloud that answers questions, searches the web, and morphs into shapes representing the concept, while controlling 40+ panels spanning productivity, gaming, fitness, and dev tools.',
+    tech: ['JavaScript', 'Claude API', 'Web Speech API'],
+    links: [
+      { label: 'GitHub', url: 'https://github.com/CodyGargar/particle-dashboard', icon: '⌥' },
+    ],
+  },
   arthAi: {
     id: 'arthAi',
     title: 'ArthAi',

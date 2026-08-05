@@ -312,76 +312,97 @@ function _addRustedTruck(scene) {
     return m;
   }
 
-  // ── Bed (rear, longer box) ──────────────────────────────────────────────────
-  bx(2.6, 1.1, 3.6, body,  0, 1.05, -1.6);   // bed walls (outer)
-  bx(2.2, 0.96, 3.3, rust, 0, 0.98, -1.6);   // bed interior (slightly darker)
-  bx(2.6, 0.18, 3.6, rust, 0, 0.55, -1.6);   // bed floor
+  // Local +Z is the front (hood/grille); -Z is the rear (tailgate).
+  const CHASSIS_Y = 0.5;   // frame-rail / wheel-center height
+  const WIDTH = 2.0;
 
-  // Bed side rust patches
-  bx(0.06, 0.6, 1.1, rust, -1.31, 0.9, -1.0);
-  bx(0.06, 0.4, 0.7, rust,  1.31, 1.0, -2.1);
+  // ── Bed (rear) — floor + four low walls, genuinely open on top instead of
+  // a solid box, so it actually reads as a cargo bed and not a second cabin.
+  const bedW = WIDTH + 0.15, bedLen = 2.6, bedCenterZ = -1.75;
+  const bedFloorH = 0.12, bedFloorY = CHASSIS_Y + bedFloorH / 2;
+  const wallH = 0.4, wallY = CHASSIS_Y + bedFloorH + wallH / 2;
+  const wallT = 0.09;
+  bx(bedW, bedFloorH, bedLen, rust, 0, bedFloorY, bedCenterZ); // floor
+  bx(wallT, wallH, bedLen, body, -bedW / 2 + wallT / 2, wallY, bedCenterZ); // left wall
+  bx(wallT, wallH, bedLen, body,  bedW / 2 - wallT / 2, wallY, bedCenterZ); // right wall
+  bx(bedW, wallH, wallT, body, 0, wallY, bedCenterZ + bedLen / 2); // front (cab-side) wall
+  bx(bedW, wallH, wallT, rust, 0, wallY, bedCenterZ - bedLen / 2); // tailgate
+  // Rust streaks down the bed sides
+  bx(0.05, 0.3, 0.05, rust, -bedW / 2, wallY - 0.35, bedCenterZ + 0.6);
+  bx(0.05, 0.25, 0.05, rust, bedW / 2, wallY - 0.3, bedCenterZ - 0.4);
 
-  // ── Cab (front) ────────────────────────────────────────────────────────────
-  bx(2.6, 2.0, 2.6, body,  0, 1.55, 1.1);    // cab body
-  bx(2.2, 0.6, 2.0, body,  0, 2.85, 1.1);    // roof
-  bx(0.06, 0.5, 0.8, rust, -1.31, 1.4, 0.6); // cab rust patch left
-  bx(0.06, 0.3, 0.5, rust,  1.31, 1.8, 1.3); // cab rust patch right
+  // ── Cab (center) — kept low and boxy on purpose, but noticeably shorter
+  // than before: doors/body top sits well below the roofline, and the whole
+  // cab is clearly taller than the bed walls without towering over the truck.
+  const cabZ = 0.35;
+  const cabBodyH = 0.95, cabBodyY = CHASSIS_Y + 0.05 + cabBodyH / 2;
+  bx(WIDTH, cabBodyH, 1.3, body, 0, cabBodyY, cabZ); // lower cab body
+  const roofH = 0.42, roofY = cabBodyY + cabBodyH / 2 + roofH / 2;
+  bx(WIDTH - 0.15, roofH, 1.05, body, 0, roofY, cabZ - 0.05); // cabin roof, set in slightly
+  bx(0.05, 0.3, 0.4, rust, -WIDTH / 2, cabBodyY, cabZ - 0.3);
+  bx(0.05, 0.2, 0.3, rust,  WIDTH / 2, cabBodyY + 0.2, cabZ + 0.2);
 
-  // Windshield
-  bx(2.05, 0.9, 0.1, glass, 0, 2.25, 2.36, -0.12);
-  // Rear window
-  bx(1.9, 0.75, 0.1, glass, 0, 2.25, -0.12, 0.08);
+  const cabTop = cabBodyY + cabBodyH / 2;
+  // Windshield (front-facing, slightly raked)
+  bx(WIDTH - 0.2, roofH - 0.08, 0.06, glass, 0, cabTop + roofH / 2, cabZ + 0.68, -0.15);
+  // Rear window (facing the bed)
+  bx(WIDTH - 0.35, roofH - 0.14, 0.06, glass, 0, cabTop + roofH / 2, cabZ - 0.6, 0.1);
   // Side windows
-  bx(0.08, 0.7, 1.1, glass, -1.31, 2.25, 1.1);
-  bx(0.08, 0.7, 1.1, glass,  1.31, 2.25, 1.1);
+  bx(0.05, roofH - 0.1, 0.6, glass, -WIDTH / 2 + 0.02, cabTop + roofH / 2, cabZ);
+  bx(0.05, roofH - 0.1, 0.6, glass,  WIDTH / 2 - 0.02, cabTop + roofH / 2, cabZ);
+  // Door seam + handle hint
+  bx(0.03, cabBodyH * 0.7, 0.02, rust, -WIDTH / 2 - 0.01, cabBodyY, cabZ);
+  bx(0.03, cabBodyH * 0.7, 0.02, rust,  WIDTH / 2 + 0.01, cabBodyY, cabZ);
 
-  // ── Front end ───────────────────────────────────────────────────────────────
-  bx(2.6, 1.3, 0.2, body,  0, 1.15, 2.42);   // grille panel
-  bx(2.6, 0.18, 0.35, chrome, 0, 0.56, 2.35);// front bumper
-  // Grille slats
-  for (let i = 0; i < 4; i++) {
-    bx(2.3, 0.07, 0.08, rust, 0, 0.72 + i * 0.22, 2.52);
+  // ── Hood + front end ────────────────────────────────────────────────────────
+  const hoodZ = cabZ + 1.05, hoodLen = 1.3;
+  bx(WIDTH - 0.1, 0.16, hoodLen, body, 0, cabTop - 0.06, hoodZ); // flat hood panel
+  bx(WIDTH - 0.15, cabBodyH - 0.1, 0.08, rust, 0, cabBodyY - 0.02, hoodZ + hoodLen / 2 - 0.05); // firewall shadow gap
+
+  const frontZ = hoodZ + hoodLen / 2 + 0.1;
+  bx(WIDTH, cabBodyH * 0.85, 0.16, body, 0, CHASSIS_Y + 0.05 + cabBodyH * 0.42, frontZ); // grille panel
+  bx(WIDTH, 0.16, 0.3, chrome, 0, CHASSIS_Y - 0.05, frontZ - 0.05); // front bumper
+  for (let i = 0; i < 3; i++) {
+    bx(WIDTH - 0.3, 0.06, 0.06, rust, 0, CHASSIS_Y + 0.35 + i * 0.18, frontZ + 0.1);
   }
-  // Headlights
-  bx(0.45, 0.35, 0.12, chrome,  0.88, 1.06, 2.52);
-  bx(0.45, 0.35, 0.12, chrome, -0.88, 1.06, 2.52);
-  // Hood
-  bx(2.6, 0.16, 2.5, body, 0, 2.12, 1.1);
+  bx(0.4, 0.3, 0.1, chrome,  0.72, CHASSIS_Y + 0.55, frontZ + 0.09);
+  bx(0.4, 0.3, 0.1, chrome, -0.72, CHASSIS_Y + 0.55, frontZ + 0.09);
 
-  // ── Exhaust pipe (driver side) ──────────────────────────────────────────────
-  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.5, 8), chrome);
+  // ── Exhaust pipe (driver side, below the cab) ────────────────────────────────
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 8), chrome);
   pipe.rotation.z = Math.PI / 2;
-  pipe.position.set(-1.45, 0.85, 1.6);
+  pipe.position.set(-WIDTH / 2 - 0.05, CHASSIS_Y - 0.15, cabZ - 0.3);
+  pipe.castShadow = true;
   grp.add(pipe);
 
   // ── Wheels ──────────────────────────────────────────────────────────────────
+  const wheelX = WIDTH / 2 - 0.05;
   const wheelPositions = [
-    [-1.38, 0.52,  1.8],  // front-left
-    [ 1.38, 0.52,  1.8],  // front-right
-    [-1.38, 0.52, -1.8],  // rear-left
-    [ 1.38, 0.52, -1.8],  // rear-right
+    [-wheelX, CHASSIS_Y, hoodZ - hoodLen / 2 + 0.1],  // front-left
+    [ wheelX, CHASSIS_Y, hoodZ - hoodLen / 2 + 0.1],  // front-right
+    [-wheelX, CHASSIS_Y, bedCenterZ + 0.5],           // rear-left (flat, see below)
+    [ wheelX, CHASSIS_Y, bedCenterZ + 0.5],           // rear-right
   ];
-  wheelPositions.forEach(([x, y, z]) => {
-    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.38, 14), rubber);
-    tire.rotation.z = Math.PI / 2;
-    tire.position.set(x, y, z);
+  wheelPositions.forEach(([x, y, z], i) => {
+    const isFlatRear = i === 2; // driver-side rear tyre sags, like it's been sitting a while
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.34, 14), rubber);
+    if (isFlatRear) {
+      tire.rotation.set(Math.PI / 2, 0, 0.4);
+      tire.position.set(x, y - 0.14, z);
+    } else {
+      tire.rotation.z = Math.PI / 2;
+      tire.position.set(x, y, z);
+    }
     tire.castShadow = true;
     grp.add(tire);
 
-    const hubcap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.42, 10), hub);
-    hubcap.rotation.z = Math.PI / 2;
-    hubcap.position.set(x, y, z);
-    grp.add(hubcap);
+    if (!isFlatRear) {
+      const hubcap = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.36, 10), hub);
+      hubcap.rotation.z = Math.PI / 2;
+      hubcap.position.set(x, y, z);
+      grp.add(hubcap);
+    }
   });
-
-  // ── Flat rear-left tyre (for character) ─────────────────────────────────────
-  const flat = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.38, 14), rubber);
-  flat.rotation.set(Math.PI / 2, 0, 0.45); // squished lean
-  flat.position.set(-1.38, 0.36, -1.8);
-  flat.castShadow = true;
-  grp.add(flat);
-  // remove the upright version we added above by adjusting its y off-screen — simpler: just squish the original
-  // (the flat mesh replaces the normal left-rear; they overlap slightly which is fine at this fidelity)
 
   scene.add(grp);
 }

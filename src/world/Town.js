@@ -36,12 +36,30 @@ export function buildTown(scene) {
     { position: { x: 6, z: -18 },   color: 0x0a66c2, label: '', projectId: 'linkedin', logo: 'linkedin', width: 6, depth: 5, height: 6 },
   ];
 
-  // All four project storefronts, lined up south of the main road facing it.
-  // Positions are chosen so that at scale 1.55 (footprint ~6 half-width,
-  // front porch reaching ~7.5 past center) none of them clip the main road
-  // (|z|<3), the side roads (x in [-24,-20] or [20,24]), each other, the
-  // district sign posts (x=∓30, z=-18), or nearby props.
+  // Project storefronts. Positions are chosen so that at scale 1.55
+  // (footprint ~6 half-width, front porch reaching ~7.5 past center) none of
+  // them clip the main road (|z|<3), the side roads (x in [-24,-20] or
+  // [20,24]), each other, the district sign posts (x=∓30, z=-18), or nearby
+  // props. The two Software Gulch buildings west of the side road already
+  // use the full available space in that row, so ParticleAI sits on a
+  // second row north of the main road instead (front faces away from the
+  // road here, but the district zone and interaction still work the same).
   const storefrontDefs = [
+    {
+      position: { x: -40, z: 10 },
+      projectId: 'particleAi',
+      name: 'Particle AI',
+      width: 7,
+      stories: 1,
+      parapetStyle: 'curved',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'lap',
+      woodTint: 0x9c7a52,
+      signText: 'Particle AI',
+      hasHitchingRail: true,
+      scale: 1.55,
+    },
     {
       position: { x: 46, z: -12.5 },
       projectId: 'arthAi',

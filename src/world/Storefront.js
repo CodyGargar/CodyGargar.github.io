@@ -310,7 +310,14 @@ function _buildFalseFront(cfg, dims, mats, rand, addStatic) {
     shape.lineTo(hw, 0);
     shape.closePath();
 
-    capTrim(hw * 2 + 0.15, curveBase);
+    // Split into two flanking segments, same idea as the stepped style's h1
+    // caps — a single full-width board here sits right under the sign board
+    // (which is centered a bit above this same height) and clips through it.
+    const signGap = Math.min(cfg.width * 0.55, 3.2) / 2 + 0.35;
+    if (hw > signGap) {
+      capTrim(hw - signGap, curveBase, -(hw + signGap) / 2);
+      capTrim(hw - signGap, curveBase, (hw + signGap) / 2);
+    }
   } else {
     shape.lineTo(-hw, dims.falseFrontHeight);
     shape.lineTo(hw, dims.falseFrontHeight);

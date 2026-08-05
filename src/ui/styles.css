@@ -1,0 +1,217 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  overflow: hidden;
+  background: #1a0a00;
+  font-family: 'Rye', serif;
+}
+
+#canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ── HUD ────────────────────────────────────────────────────────────────── */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#district-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  color: #f5deb3;
+  font-size: 1.4rem;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#district-label.visible { opacity: 1; }
+
+#enter-prompt {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f5deb3;
+  font-size: 1.1rem;
+  background: rgba(40, 20, 0, 0.72);
+  border: 2px solid #c8a050;
+  border-radius: 6px;
+  padding: 8px 20px;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+#enter-prompt.visible { opacity: 1; }
+
+/* ── Project Page Overlay ───────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  overflow-y: auto;
+}
+#modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Full-page project layout */
+#project-page {
+  min-height: 100vh;
+  background: #120800;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(24px);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#modal-overlay.open #project-page {
+  transform: translateY(0);
+}
+
+/* ── Header (back button bar) ───────────────────────────────────────────── */
+#project-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(18, 8, 0, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid #3a2208;
+  padding: 14px 32px;
+}
+
+#back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1.5px solid #c8a050;
+  border-radius: 6px;
+  color: #c8a050;
+  font-family: 'Rye', serif;
+  font-size: 0.9rem;
+  padding: 7px 18px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  letter-spacing: 0.03em;
+}
+#back-btn:hover {
+  background: #c8a050;
+  color: #120800;
+}
+
+#back-arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ── Main content ───────────────────────────────────────────────────────── */
+#project-main {
+  flex: 1;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 56px 32px 80px;
+}
+
+#project-meta {
+  margin-bottom: 12px;
+}
+
+#project-district {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c8a050;
+}
+
+#project-title {
+  font-family: 'Rye', serif;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  color: #ffdd88;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+  line-height: 1.1;
+  margin-bottom: 28px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #3a2208;
+  margin-bottom: 28px;
+}
+
+#project-description {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  line-height: 1.85;
+  color: #e0cca0;
+  margin-bottom: 28px;
+}
+
+/* ── Tech tags ──────────────────────────────────────────────────────────── */
+#project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 48px;
+}
+
+.tag {
+  background: #1e0e00;
+  border: 1px solid #5a3e18;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.8rem;
+  color: #c8a050;
+  letter-spacing: 0.04em;
+}
+
+/* ── Links ──────────────────────────────────────────────────────────────── */
+#project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 26px;
+  border: 2px solid #c8a050;
+  border-radius: 8px;
+  color: #ffdd88;
+  font-family: 'Rye', serif;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+  letter-spacing: 0.02em;
+}
+.project-link:hover {
+  background: #c8a050;
+  color: #120800;
+  border-color: #c8a050;
+}
+
+.link-icon {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.link-ext {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-left: 2px;
+}

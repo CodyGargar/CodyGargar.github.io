@@ -23,6 +23,10 @@ export class Player {
     camera.lookAt(this.position.x, 1.5, this.position.z);
 
     this.keys = { up: false, down: false, left: false, right: false };
+    // Set to false while the classic 2D site is showing, so WASD/arrow keys
+    // don't fight the player for input and arrow keys are free to scroll
+    // the page instead of being swallowed by preventDefault below.
+    this.enabled = true;
     this._bindKeys();
 
     this._walkPhase = 0;
@@ -30,7 +34,6 @@ export class Player {
 
     this.group = new THREE.Group();
     this._buildCowboy();
-    this.group.castShadow = true;
   }
 
   _buildCowboy() {
@@ -150,10 +153,19 @@ export class Player {
       KeyD: 'right', ArrowRight: 'right',
     };
     window.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
       if (map[e.code]) { this.keys[map[e.code]] = true; e.preventDefault(); }
     });
     window.addEventListener('keyup', (e) => {
       if (map[e.code]) this.keys[map[e.code]] = false;
+    });
+    // If the tab/window loses focus while a movement key is held (alt-tab,
+    // clicking another app, a browser dialog), the matching keyup never
+    // reaches window — without this, that key would stay "held" forever
+    // and the character would walk with no input the instant focus/enabled
+    // input resumes.
+    window.addEventListener('blur', () => {
+      this.keys.up = this.keys.down = this.keys.left = this.keys.right = false;
     });
   }
 
@@ -201,9 +213,15 @@ export class Player {
     this.group.position.copy(this.position);
     this._updateWalkAnim(delta, paused);
 
-    // Camera follow with lerp
+    // Camera follow with lerp. CAM_LERP was tuned per-frame at an assumed
+    // 60fps; applying it directly (as a flat factor with no delta term)
+    // made the catch-up speed framerate-dependent — converting it to an
+    // exponential decay rate keeps the same feel at 60fps while staying
+    // consistent at other refresh rates (down to the ~20fps floor implied
+    // by main.js's delta clamp).
     const idealCam = this.position.clone().add(CAM_OFFSET);
-    this._camTarget.lerp(idealCam, CAM_LERP);
+    const camT = 1 - Math.pow(1 - CAM_LERP, delta * 60);
+    this._camTarget.lerp(idealCam, camT);
     this.camera.position.copy(this._camTarget);
     this.camera.lookAt(this.position.x, 1.5, this.position.z);
   }

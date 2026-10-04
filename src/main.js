@@ -5,6 +5,7 @@ import { Player } from './character/Player.js';
 import { nearestDoorBuilding } from './character/collision.js';
 import { HUD } from './ui/HUD.js';
 import { ProjectModal } from './ui/ProjectModal.js';
+import { ClassicSite } from './ui/ClassicSite.js';
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
@@ -50,25 +51,73 @@ player.addTo(scene);
 // ── UI ────────────────────────────────────────────────────────────────────────
 const hud = new HUD();
 const modal = new ProjectModal();
+const classicSite = new ClassicSite();
+
+// player.enabled must reflect BOTH of these, not mode alone — otherwise,
+// while the project modal is open in 3D mode, WASD/arrow keydowns still
+// call preventDefault() (blocking the modal's own arrow-key scrolling) and
+// this.keys keeps accumulating state, so a key held when 'E' was pressed is
+// still "on" the instant the modal closes and the character lurches off
+// with no new input.
 let paused = false;
-modal.onClose = () => { paused = false; };
+function setPaused(value) {
+  paused = value;
+  updatePlayerEnabled();
+}
+modal.onClose = () => { setPaused(false); };
 
 let nearBuilding = null;
 
 window.addEventListener('keydown', (e) => {
+  if (mode !== '3d') return;
   if (e.key === 'e' || e.key === 'E') {
     if (nearBuilding && !paused) {
-      paused = true;
+      setPaused(true);
       modal.open(nearBuilding.projectId);
     }
   }
 });
 
+// ── 3D / classic-site toggle ────────────────────────────────────────────────
+const scene3dEl = document.getElementById('scene-3d');
+const classicEl = document.getElementById('classic-site');
+const toggleBtn = document.getElementById('view-toggle');
+
+let mode = localStorage.getItem('siteMode') === 'classic' ? 'classic' : '3d';
+
+function updatePlayerEnabled() {
+  player.enabled = mode === '3d' && !paused;
+}
+
+function applyMode() {
+  const is3d = mode === '3d';
+  scene3dEl.style.display = is3d ? '' : 'none';
+  classicEl.hidden = is3d;
+  updatePlayerEnabled();
+  toggleBtn.textContent = is3d ? '🌐 Classic Site' : '🤠 3D Town';
+  // The resize listener below skips work while the 3D view is hidden, so
+  // catch up on anything missed as soon as it's shown again.
+  if (is3d) syncRendererSize();
+}
+
+toggleBtn.addEventListener('click', () => {
+  if (modal.isOpen) modal.close(); // don't leave the project overlay open under the wrong view
+  mode = mode === '3d' ? 'classic' : '3d';
+  localStorage.setItem('siteMode', mode);
+  applyMode();
+});
+
+applyMode();
+
 // ── Resize ────────────────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
+function syncRendererSize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', () => {
+  if (mode !== '3d') return; // avoid pointless framebuffer reallocation while hidden
+  syncRendererSize();
 });
 
 // ── Game loop ─────────────────────────────────────────────────────────────────
@@ -76,6 +125,8 @@ const clock = new THREE.Clock();
 
 function loop() {
   requestAnimationFrame(loop);
+  if (mode !== '3d') return; // classic site showing — skip sim/render work entirely
+
   const delta = Math.min(clock.getDelta(), 0.05);
 
   player.update(delta, buildings, paused);

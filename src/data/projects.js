@@ -83,4 +83,27 @@ export const projects = {
       { label: 'Visit LinkedIn', url: 'https://linkedin.com/in/arevaloe', icon: '↗' },
     ],
   },
+  devpost: {
+    id: 'devpost',
+    title: 'Devpost',
+    district: 'The Telegraph Office',
+    description:
+      "See the hackathon submissions behind ArthAi, Assist, FirstStep AI, and PitPerfect — write-ups, demo videos, and the teams that built them.",
+    tech: [],
+    links: [
+      { label: 'Visit Devpost', url: 'https://devpost.com', icon: '⬡' },
+    ],
+  },
+  aboutMe: {
+    id: 'aboutMe',
+    title: 'About Me',
+    district: 'The Telegraph Office',
+    description:
+      "EECS student at MIT, currently interning as a Software Engineer at Amazon. Most of what's in this town got built over a single sleepless hackathon weekend — robotic arms, gait trackers, pitch coaches — usually aimed at rehabilitation, accessibility, or just making something a little less tedious. Always tinkering with the next one.",
+    tech: [],
+    links: [
+      { label: 'GitHub', url: 'https://github.com/arevaloe', icon: '⌥' },
+      { label: 'LinkedIn', url: 'https://linkedin.com/in/arevaloe', icon: '↗' },
+    ],
+  },
 };

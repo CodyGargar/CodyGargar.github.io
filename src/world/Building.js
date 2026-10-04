@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 
 /**
- * Building — western storefront box with AABB collision data.
- * Pass logo:'github' to replace the hanging sign with a full-facade logo texture.
+ * Building — western storefront box with a full-facade brand-logo texture
+ * (GitHub/LinkedIn), with AABB collision data. The Storefront.js generator
+ * covers every other (non-logo) storefront now, so this class only ever
+ * needs to handle the logo case in practice.
  */
 export class Building {
-  constructor({ position, width = 6, depth = 5, height = 7, color = 0xc8a96e, label = '', projectId = null, logo = null }) {
+  constructor({ position, width = 6, depth = 5, height = 7, color = 0xc8a96e, projectId = null, logo = null }) {
     this.projectId = projectId;
     this.group = new THREE.Group();
     this.group.position.set(position.x, 0, position.z);
@@ -37,11 +39,8 @@ export class Building {
       this._addGithubFacade(width, depth, height);
     } else if (logo === 'linkedin') {
       this._addLinkedinFacade(width, depth, height);
-    } else {
-      this._addWesternSign(width, depth, height, label);
-      this._addDoor(width, depth, height);
-      this._addWindows(width, depth, height);
-      this._addPorchStep(width, depth, height);
+    } else if (logo === 'devpost') {
+      this._addDevpostFacade(width, depth, height);
     }
 
     // AABB for collision
@@ -54,34 +53,6 @@ export class Building {
     };
 
     this.doorPosition = new THREE.Vector3(position.x, 0, position.z + depth / 2);
-  }
-
-  _addWesternSign(width, depth, height, label) {
-    const plank = new THREE.Mesh(
-      new THREE.BoxGeometry(Math.min(width - 1, 4), 0.9, 0.15),
-      new THREE.MeshLambertMaterial({ color: 0x5c3317 })
-    );
-    plank.position.set(0, height - 1.4, depth / 2 + 0.1);
-    this.group.add(plank);
-
-    if (label) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 256; canvas.height = 64;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#5c3317';
-      ctx.fillRect(0, 0, 256, 64);
-      ctx.fillStyle = '#f5deb3';
-      ctx.font = 'bold 22px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, 128, 32);
-      const textMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(Math.min(width - 1, 4) - 0.1, 0.8),
-        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true })
-      );
-      textMesh.position.set(0, height - 1.4, depth / 2 + 0.18);
-      this.group.add(textMesh);
-    }
   }
 
   /** Thin trim posts running up each of the four wall corners. */
@@ -105,83 +76,6 @@ export class Building {
       post.castShadow = true;
       this.group.add(post);
     });
-  }
-
-  /** Door with a frame, an upper glass pane, and a brass knob. */
-  _addDoor(width, depth, height) {
-    const trimMat = new THREE.MeshLambertMaterial({ color: 0x3a2410 });
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0x2a3530, transparent: true, opacity: 0.75 });
-    const knobMat = new THREE.MeshLambertMaterial({ color: 0xd4af37 });
-
-    const doorW = 1.2;
-    const doorH = 2.4;
-
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.16, doorH + 0.12, 0.08), trimMat);
-    frame.position.set(0, doorH / 2, depth / 2 + 0.03);
-    this.group.add(frame);
-
-    const door = new THREE.Mesh(
-      new THREE.BoxGeometry(doorW, doorH, 0.1),
-      new THREE.MeshLambertMaterial({ color: 0x3b1a08 })
-    );
-    door.position.set(0, doorH / 2, depth / 2 + 0.06);
-    door.castShadow = true;
-    this.group.add(door);
-
-    const pane = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.55, doorH * 0.28, 0.04), glassMat);
-    pane.position.set(0, doorH * 0.66, depth / 2 + 0.12);
-    this.group.add(pane);
-
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), knobMat);
-    knob.position.set(doorW * 0.32, doorH * 0.42, depth / 2 + 0.13);
-    this.group.add(knob);
-  }
-
-  /** Two flanking windows with a frame, glass, mullion cross, and sill. */
-  _addWindows(width, depth, height) {
-    const trimMat = new THREE.MeshLambertMaterial({ color: 0xdccfa0 });
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0x2a3530, transparent: true, opacity: 0.75 });
-    const sillMat = new THREE.MeshLambertMaterial({ color: 0x3a2410 });
-
-    const winW = Math.min(width * 0.22, 1.0);
-    const winH = height * 0.26;
-    const winY = height * 0.56;
-    const winZ = depth / 2;
-
-    [-1, 1].forEach((side) => {
-      const wx = side * width * 0.3;
-
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.12, winH + 0.12, 0.06), trimMat);
-      frame.position.set(wx, winY, winZ + 0.02);
-      this.group.add(frame);
-
-      const glass = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.05), glassMat);
-      glass.position.set(wx, winY, winZ + 0.06);
-      this.group.add(glass);
-
-      const mullionV = new THREE.Mesh(new THREE.BoxGeometry(0.04, winH, 0.06), trimMat);
-      mullionV.position.set(wx, winY, winZ + 0.08);
-      this.group.add(mullionV);
-
-      const mullionH = new THREE.Mesh(new THREE.BoxGeometry(winW, 0.04, 0.06), trimMat);
-      mullionH.position.set(wx, winY, winZ + 0.08);
-      this.group.add(mullionH);
-
-      const sill = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.3, 0.08, 0.18), sillMat);
-      sill.position.set(wx, winY - winH / 2 - 0.06, winZ + 0.12);
-      this.group.add(sill);
-    });
-  }
-
-  /** Raised wooden boardwalk step in front of the door. */
-  _addPorchStep(width, depth, height) {
-    const step = new THREE.Mesh(
-      new THREE.BoxGeometry(Math.min(width * 0.55, 2.4), 0.16, 0.6),
-      new THREE.MeshLambertMaterial({ color: 0x8a6a42 })
-    );
-    step.position.set(0, 0.08, depth / 2 + 0.35);
-    step.receiveShadow = true;
-    this.group.add(step);
   }
 
   _addLinkedinFacade(width, depth, height) {
@@ -291,6 +185,48 @@ export class Building {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('GitHub', SIZE / 2, SIZE * 0.82);
+
+    const facadeMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(width - 0.3, height - 0.4),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas) })
+    );
+    facadeMesh.position.set(0, height / 2, depth / 2 + 0.06);
+    this.group.add(facadeMesh);
+  }
+
+  /** Brand colors and logo path confirmed via web search: Devpost's palette
+   * is #57C1FF (Malibu), #98A3F3 (Portage), #003E53 (Sherpa Blue); the mark
+   * is a hexagonal badge with a "D" cut into it (24x24 viewBox). */
+  _addDevpostFacade(width, depth, height) {
+    const SIZE = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+
+    // Devpost dark teal background
+    ctx.fillStyle = '#003e53';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Devpost hexagonal badge mark via Path2D (24×24 viewBox, scaled to ~220px)
+    const LOGO_PX = 220;
+    const scale = LOGO_PX / 24;
+    ctx.save();
+    ctx.translate((SIZE - LOGO_PX) / 2, SIZE * 0.1);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#57c1ff';
+    ctx.fill(new Path2D(
+      'M6.002 1.61L0 12.004 6.002 22.39h11.996L24 12.004 17.998 1.61zm1.593 4.084h3.947' +
+      'c3.605 0 6.276 1.695 6.276 6.31 0 4.436-3.21 6.302-6.456 6.302H7.595zm2.517 2.449v7.714' +
+      'h1.241c2.646 0 3.862-1.55 3.862-3.861.009-2.569-1.096-3.853-3.767-3.853Z'
+    ));
+    ctx.restore();
+
+    // "Devpost" wordmark below the logo
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.round(SIZE * 0.1)}px -apple-system, "Segoe UI", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Devpost', SIZE / 2, SIZE * 0.82);
 
     const facadeMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(width - 0.3, height - 0.4),

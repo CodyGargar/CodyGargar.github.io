@@ -29,11 +29,16 @@ export function buildTown(scene) {
   _addSign(scene, 0, -5, 'The Telegraph Office');
 
   // Buildings
-  // GitHub/LinkedIn keep their real brand-logo facades, which the Storefront
-  // generator doesn't model, so they stay on the plain Building class.
+  // GitHub/LinkedIn/Devpost keep their real brand-logo facades, which the
+  // Storefront generator doesn't model, so they stay on the plain Building
+  // class. Devpost sits in its own row south of the other two — the gap
+  // between github's and linkedin's roof overhangs (~4.8 units) is too
+  // narrow to fit a third same-sized kiosk at x=0 in that row without
+  // clipping both neighbors.
   const buildingDefs = [
-    { position: { x: -6, z: -18 },  color: 0x0d1117, label: '', projectId: 'github', logo: 'github', width: 6, depth: 5, height: 6 },
-    { position: { x: 6, z: -18 },   color: 0x0a66c2, label: '', projectId: 'linkedin', logo: 'linkedin', width: 6, depth: 5, height: 6 },
+    { position: { x: -6, z: -18 },  color: 0x0d1117, projectId: 'github', logo: 'github', width: 6, depth: 5, height: 6 },
+    { position: { x: 6, z: -18 },   color: 0x0a66c2, projectId: 'linkedin', logo: 'linkedin', width: 6, depth: 5, height: 6 },
+    { position: { x: 0, z: -26 },   color: 0x003e53, projectId: 'devpost', logo: 'devpost', width: 6, depth: 5, height: 6 },
   ];
 
   // Project storefronts. Positions are chosen so that at scale 1.55
@@ -117,6 +122,25 @@ export function buildTown(scene) {
       sidingType: 'lap',
       woodTint: 0x9e7a3a,
       signText: 'FirstStep AI',
+      hasHitchingRail: true,
+      scale: 1.55,
+    },
+    // "About Me" sits further south of the Devpost kiosk (which is itself
+    // at (0,-26)) — its own footprint plus porch reaches back toward +Z by
+    // roughly 7 units at this scale, so this gives clear separation from
+    // Devpost's southern edge (~z=-29) without touching it.
+    {
+      position: { x: 0, z: -40 },
+      projectId: 'aboutMe',
+      name: 'About Me',
+      width: 7,
+      stories: 1,
+      parapetStyle: 'curved',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'board-batten',
+      woodTint: 0x8b6f47,
+      signText: 'About Me',
       hasHitchingRail: true,
       scale: 1.55,
     },

@@ -9,6 +9,9 @@ export function addProps(scene) {
   _addTRexSkeleton(scene);
   _addRustedTruck(scene);
   _addRockFormation(scene);
+  _addOldWagon(scene);
+  _addTrainTracks(scene);
+  _addAnimalFarm(scene);
 }
 
 function _addCacti(scene) {
@@ -16,17 +19,22 @@ function _addCacti(scene) {
     [-50, -40], [-48, 20], [-45, 35], [50, -35], [48, 15], [44, 40],
     [-55, 5], [55, -10],
   ];
-  // [trunk, flower] color sets — cycled for natural variation
+  // [trunk, flower] color sets — cycled for natural variation. Only 3
+  // distinct palettes exist for 8 cacti, so the materials are built once
+  // per palette up front and shared, instead of a fresh pair per cactus.
   const palettes = [
     { trunk: 0x4a7c4e, flower: 0xe0577a },
     { trunk: 0x5a8a52, flower: 0xf0a83c },
     { trunk: 0x3f6f45, flower: 0xd94f6c },
-  ];
+  ].map((p) => ({
+    trunkMat: new THREE.MeshLambertMaterial({ color: p.trunk }),
+    flowerMat: new THREE.MeshLambertMaterial({ color: p.flower }),
+  }));
   const spikeMat = new THREE.MeshLambertMaterial({ color: 0xe8dcb8 });
 
   positions.forEach(([x, z], i) => {
     const palette = palettes[i % palettes.length];
-    const trunkMat = new THREE.MeshLambertMaterial({ color: palette.trunk });
+    const trunkMat = palette.trunkMat;
 
     const grp = new THREE.Group();
     grp.position.set(x, 0, z);
@@ -69,8 +77,7 @@ function _addCacti(scene) {
       // Occasional blossom at the arm tip
       if (rand() < 0.3) {
         const tip = upCenter.clone().addScaledVector(upDir, upLen / 2);
-        const flowerMat = new THREE.MeshLambertMaterial({ color: palette.flower });
-        const flower = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 6), flowerMat);
+        const flower = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 6), palette.flowerMat);
         flower.position.copy(tip).addScaledVector(upDir, 0.05);
         flower.castShadow = true;
         grp.add(flower);
@@ -192,7 +199,10 @@ function _addBarrels(scene) {
 }
 
 function _addLampposts(scene) {
-  const positions = [[-12, -3], [12, -3], [-12, 3], [12, 3], [-30, 0], [30, 0]];
+  // z=±3 lines each pole up with the main road's edge, matching the inner
+  // pair at x=±12. The outer pair used to sit at z=0 — the road's actual
+  // centerline — which planted them in the middle of the street.
+  const positions = [[-12, -3], [12, -3], [-12, 3], [12, 3], [-30, 3], [30, 3]];
   positions.forEach(([x, z]) => {
     // pole
     const pole = new THREE.Mesh(
@@ -217,9 +227,11 @@ function _addLampposts(scene) {
   });
 }
 
-// Slowly-drifting tumbleweed
+// Slowly-drifting tumbleweed. Z velocity is 0 — updateProps() below only
+// ever wraps the X position, so a nonzero Z drift (as this had before)
+// eventually carries it off the north/south edge of the map for good.
 let _tumbleweed = null;
-let _tumbleVel = new THREE.Vector3(0.015, 0, 0.005);
+let _tumbleVel = new THREE.Vector3(0.015, 0, 0);
 
 function _addTumbleweed(scene) {
   const geo = new THREE.SphereGeometry(0.55, 8, 8);
@@ -273,15 +285,19 @@ function _addRockFormation(scene) {
     grp.add(mesh);
   });
 
-  // Flat cap stones resting on top of the two main boulders
-  [[0, 2.6, 0], [2.5, 2.2, 0.5]].forEach(([x, y, z]) => {
+  // Flat cap stones resting on top of the two main boulders. Every other
+  // rock here uses a fixed, hand-picked rotation; these used Math.random(),
+  // the only non-deterministic value in an otherwise fully fixed layout —
+  // it would silently re-roll on every reload instead of staying put like
+  // the rest of the formation.
+  [[0, 2.6, 0, 0.4], [2.5, 2.2, 0.5, 2.1]].forEach(([x, y, z, capRotY]) => {
     const cap = new THREE.Mesh(
       new THREE.SphereGeometry(1, 7, 5),
       mats[1]
     );
     cap.scale.set(1.1, 0.45, 0.95);
     cap.position.set(x, y + 1.1, z);
-    cap.rotation.y = Math.random() * Math.PI;
+    cap.rotation.y = capRotY;
     cap.castShadow = true;
     grp.add(cap);
   });
@@ -291,8 +307,10 @@ function _addRockFormation(scene) {
 
 function _addRustedTruck(scene) {
   const grp = new THREE.Group();
-  // Parked just off the north side of the main road, near the east side street
-  grp.position.set(14, 0, 5);
+  // Parked north of the main road (which spans z in [-3,3]), near the east
+  // side street. z was 5 before, but the truck's own length plus its yaw
+  // meant the tailgate corner actually landed at z~1.7 — inside the road.
+  grp.position.set(14, 0, 7);
   grp.rotation.y = Math.PI * 0.08; // slightly angled, like it's been sitting there a while
 
   const body    = new THREE.MeshLambertMaterial({ color: 0x7a3218 }); // rusty red-brown
@@ -313,14 +331,23 @@ function _addRustedTruck(scene) {
   }
 
   // Local +Z is the front (hood/grille); -Z is the rear (tailgate).
-  const CHASSIS_Y = 0.5;   // frame-rail / wheel-center height
   const WIDTH = 2.0;
+  const WHEEL_R = 0.46;
+  // Wheel center sits exactly one radius above the ground, so the tire
+  // actually touches down instead of floating or sinking in.
+  const AXLE_Y = WHEEL_R;
+  // Body/bed/cab underside clears the wheel's top with a visible gap. The
+  // previous version put this only ~0.05 above the axle center, so almost
+  // half of every wheel's height was buried inside the cab and bed walls —
+  // that overlap, not the proportions, was the main reason this read as an
+  // amorphous blob rather than a truck.
+  const BODY_Y = AXLE_Y + WHEEL_R + 0.08;
 
   // ── Bed (rear) — floor + four low walls, genuinely open on top instead of
   // a solid box, so it actually reads as a cargo bed and not a second cabin.
   const bedW = WIDTH + 0.15, bedLen = 2.6, bedCenterZ = -1.75;
-  const bedFloorH = 0.12, bedFloorY = CHASSIS_Y + bedFloorH / 2;
-  const wallH = 0.4, wallY = CHASSIS_Y + bedFloorH + wallH / 2;
+  const bedFloorH = 0.12, bedFloorY = BODY_Y + bedFloorH / 2;
+  const wallH = 0.4, wallY = BODY_Y + bedFloorH + wallH / 2;
   const wallT = 0.09;
   bx(bedW, bedFloorH, bedLen, rust, 0, bedFloorY, bedCenterZ); // floor
   bx(wallT, wallH, bedLen, body, -bedW / 2 + wallT / 2, wallY, bedCenterZ); // left wall
@@ -331,11 +358,10 @@ function _addRustedTruck(scene) {
   bx(0.05, 0.3, 0.05, rust, -bedW / 2, wallY - 0.35, bedCenterZ + 0.6);
   bx(0.05, 0.25, 0.05, rust, bedW / 2, wallY - 0.3, bedCenterZ - 0.4);
 
-  // ── Cab (center) — kept low and boxy on purpose, but noticeably shorter
-  // than before: doors/body top sits well below the roofline, and the whole
-  // cab is clearly taller than the bed walls without towering over the truck.
+  // ── Cab (center) — sits on the same chassis line as the bed, clearly
+  // taller than the bed walls without towering over the truck.
   const cabZ = 0.35;
-  const cabBodyH = 0.95, cabBodyY = CHASSIS_Y + 0.05 + cabBodyH / 2;
+  const cabBodyH = 0.95, cabBodyY = BODY_Y + cabBodyH / 2;
   bx(WIDTH, cabBodyH, 1.3, body, 0, cabBodyY, cabZ); // lower cab body
   const roofH = 0.42, roofY = cabBodyY + cabBodyH / 2 + roofH / 2;
   bx(WIDTH - 0.15, roofH, 1.05, body, 0, roofY, cabZ - 0.05); // cabin roof, set in slightly
@@ -355,42 +381,62 @@ function _addRustedTruck(scene) {
   bx(0.03, cabBodyH * 0.7, 0.02, rust,  WIDTH / 2 + 0.01, cabBodyY, cabZ);
 
   // ── Hood + front end ────────────────────────────────────────────────────────
-  const hoodZ = cabZ + 1.05, hoodLen = 1.3;
+  // Shortened from the old hoodLen=1.3, which pushed the grille/bumper more
+  // than a full unit past the cab's own front face — a front overhang
+  // longer than the wheelbase itself. Combined with a bumper mounted down
+  // near axle height while the grille sat up near BODY_Y, that left a big
+  // empty gap between them with nothing connecting them, which is what
+  // rendered as an isolated flat "plank" floating out ahead of the truck.
+  const hoodZ = cabZ + 0.75, hoodLen = 0.7;
   bx(WIDTH - 0.1, 0.16, hoodLen, body, 0, cabTop - 0.06, hoodZ); // flat hood panel
   bx(WIDTH - 0.15, cabBodyH - 0.1, 0.08, rust, 0, cabBodyY - 0.02, hoodZ + hoodLen / 2 - 0.05); // firewall shadow gap
 
   const frontZ = hoodZ + hoodLen / 2 + 0.1;
-  bx(WIDTH, cabBodyH * 0.85, 0.16, body, 0, CHASSIS_Y + 0.05 + cabBodyH * 0.42, frontZ); // grille panel
-  bx(WIDTH, 0.16, 0.3, chrome, 0, CHASSIS_Y - 0.05, frontZ - 0.05); // front bumper
+  const grilleH = cabBodyH * 0.85;
+  bx(WIDTH, grilleH, 0.16, body, 0, BODY_Y + grilleH / 2, frontZ); // grille panel
+  bx(WIDTH, 0.22, 0.18, chrome, 0, BODY_Y - 0.03, frontZ - 0.02); // front bumper, mounted flush under the grille
   for (let i = 0; i < 3; i++) {
-    bx(WIDTH - 0.3, 0.06, 0.06, rust, 0, CHASSIS_Y + 0.35 + i * 0.18, frontZ + 0.1);
+    bx(WIDTH - 0.3, 0.06, 0.06, rust, 0, BODY_Y + 0.3 + i * 0.18, frontZ + 0.1);
   }
-  bx(0.4, 0.3, 0.1, chrome,  0.72, CHASSIS_Y + 0.55, frontZ + 0.09);
-  bx(0.4, 0.3, 0.1, chrome, -0.72, CHASSIS_Y + 0.55, frontZ + 0.09);
+  bx(0.4, 0.3, 0.1, chrome,  0.72, BODY_Y + 0.5, frontZ + 0.09);
+  bx(0.4, 0.3, 0.1, chrome, -0.72, BODY_Y + 0.5, frontZ + 0.09);
 
   // ── Exhaust pipe (driver side, below the cab) ────────────────────────────────
   const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 8), chrome);
   pipe.rotation.z = Math.PI / 2;
-  pipe.position.set(-WIDTH / 2 - 0.05, CHASSIS_Y - 0.15, cabZ - 0.3);
+  pipe.position.set(-WIDTH / 2 - 0.05, AXLE_Y - 0.15, cabZ - 0.3);
   pipe.castShadow = true;
   grp.add(pipe);
 
   // ── Wheels ──────────────────────────────────────────────────────────────────
   const wheelX = WIDTH / 2 - 0.05;
   const wheelPositions = [
-    [-wheelX, CHASSIS_Y, hoodZ - hoodLen / 2 + 0.1],  // front-left
-    [ wheelX, CHASSIS_Y, hoodZ - hoodLen / 2 + 0.1],  // front-right
-    [-wheelX, CHASSIS_Y, bedCenterZ + 0.5],           // rear-left (flat, see below)
-    [ wheelX, CHASSIS_Y, bedCenterZ + 0.5],           // rear-right
+    [-wheelX, AXLE_Y, hoodZ - hoodLen / 2 + 0.1],  // front-left
+    [ wheelX, AXLE_Y, hoodZ - hoodLen / 2 + 0.1],  // front-right
+    [-wheelX, AXLE_Y, bedCenterZ + 0.5],           // rear-left (flat, see below)
+    [ wheelX, AXLE_Y, bedCenterZ + 0.5],           // rear-right
   ];
   wheelPositions.forEach(([x, y, z], i) => {
     const isFlatRear = i === 2; // driver-side rear tyre sags, like it's been sitting a while
-    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.34, 14), rubber);
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, 0.34, 14), rubber);
+    // Lay the cylinder on its side so its axis runs along X (the axle) —
+    // this alone is enough for a normal wheel. The old "flat tire" branch
+    // additionally rotated about X then Z, which doesn't just tilt the
+    // tire: composing those two rotations reorients the whole shape so its
+    // footprint balloons to roughly double the wheel radius in both width
+    // and height and dips well below the ground — that oversized, sunken
+    // blob is what was rendering as a long plank under the truck.
+    tire.rotation.z = Math.PI / 2;
     if (isFlatRear) {
-      tire.rotation.set(Math.PI / 2, 0, 0.4);
-      tire.position.set(x, y - 0.14, z);
+      const squash = 0.6; // vertical squash for a deflated look
+      // Object3D applies scale in local space BEFORE rotation, so it's the
+      // cylinder's local X (its radius axis) that becomes vertical once the
+      // Z rotation above is applied — scaling Y here (the cylinder's local
+      // height/thickness axis, which maps to vehicle-width) was the exact
+      // bug that left the "flat" tire's actual height untouched.
+      tire.scale.x = squash;
+      tire.position.set(x, WHEEL_R * squash, z); // keep the flattened tire's bottom on the ground
     } else {
-      tire.rotation.z = Math.PI / 2;
       tire.position.set(x, y, z);
     }
     tire.castShadow = true;
@@ -512,6 +558,300 @@ function _addTRexSkeleton(scene) {
     add(bx(0.06, 0.26, 0.06), sx + side * 0.1, 2.8, 2.34, 0.2,  0.15);
     add(bx(0.06, 0.26, 0.06), sx + side * 0.1, 2.8, 2.52, 0.2, -0.1);
   });
+
+  scene.add(grp);
+}
+
+/**
+ * Old covered wagon. Placement chosen to sit well clear of the west side
+ * road (x in [-24,-20]), the district sign/barrel at (-30,-18)/(-9,-22),
+ * and the animal farm south of it — see that function's own placement note.
+ */
+function _addOldWagon(scene) {
+  const grp = new THREE.Group();
+  grp.position.set(-10, 0, -28);
+  grp.rotation.y = 0.3;
+
+  const wood = new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
+  const trim = new THREE.MeshLambertMaterial({ color: 0x3a2410 });
+  const canvasMat = new THREE.MeshLambertMaterial({ color: 0xd9c199 });
+
+  const bx = (w, h, d, mat, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    grp.add(m);
+    return m;
+  };
+
+  // Rear wheels are bigger than the front ones, like a real old wagon. Each
+  // axle height is set to its OWN wheel radius (touches the ground exactly),
+  // and the bed sits above the taller of the two wheel-tops plus a clear
+  // gap — the truck earlier this session got this backwards (axle height
+  // and body-bottom were nearly the same number) and ended up with wheels
+  // half-buried in the body; this bakes the correct relationship in from
+  // the start instead of tuning it after the fact.
+  const REAR_R = 0.7, FRONT_R = 0.5;
+  const REAR_AXLE_Y = REAR_R, FRONT_AXLE_Y = FRONT_R;
+  const BED_BOTTOM_Y = Math.max(REAR_AXLE_Y + REAR_R, FRONT_AXLE_Y + FRONT_R) + 0.1;
+
+  const BED_W = 2.2, BED_L = 4.4;
+
+  // Bed floor + side rails
+  bx(BED_W, 0.15, BED_L, wood, 0, BED_BOTTOM_Y + 0.075, 0);
+  const railH = 0.35, railY = BED_BOTTOM_Y + 0.15 + railH / 2;
+  bx(0.08, railH, BED_L, wood, -BED_W / 2 + 0.04, railY, 0);
+  bx(0.08, railH, BED_L, wood, BED_W / 2 - 0.04, railY, 0);
+  bx(BED_W, railH, 0.08, wood, 0, railY, BED_L / 2 - 0.04);
+  bx(BED_W, railH, 0.08, wood, 0, railY, -BED_L / 2 + 0.04);
+
+  // Plank seams for a little texture — cheap detail, matches the boardwalk
+  // treatment used on the storefronts.
+  for (let i = 0; i < 4; i++) {
+    const zpos = -BED_L / 2 + 0.6 + i * (BED_L - 1.2) / 3;
+    bx(BED_W - 0.05, 0.03, 0.06, trim, 0, BED_BOTTOM_Y + 0.15 + 0.015, zpos);
+  }
+
+  // Canvas canopy — a stretched sphere whose equator sits at the bed's top
+  // surface, so only the dome half is ever visible; the lower hemisphere is
+  // fully enclosed inside the (opaque) bed and side rails.
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), canvasMat);
+  canopy.scale.set(BED_W / 2 * 0.9, 1.2, BED_L / 2 * 0.92);
+  canopy.position.set(0, BED_BOTTOM_Y + 0.15, 0);
+  canopy.castShadow = true;
+  grp.add(canopy);
+
+  // Tongue (hitch pole) sticking out the front
+  bx(0.12, 0.12, 1.8, wood, 0, BED_BOTTOM_Y - 0.05, BED_L / 2 + 0.9);
+
+  // Wheels — built in a shared local frame (spin axis = Y, matching a
+  // default unrotated cylinder) and rotated once as a whole group, the same
+  // proven-safe pattern used for the truck's wheels — no combined multi-axis
+  // rotation, which is what caused the truck's earlier "flat tire" bug.
+  const buildWheel = (radius) => {
+    const wheel = new THREE.Group();
+    const thickness = 0.1;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, thickness, 16), wood);
+    rim.castShadow = true;
+    wheel.add(rim);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.16, radius * 0.16, thickness * 1.4, 10), trim);
+    hub.castShadow = true;
+    wheel.add(hub);
+    const spokeCount = 6;
+    for (let i = 0; i < spokeCount; i++) {
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.05, thickness * 0.85, radius * 1.75), trim);
+      spoke.rotation.y = (i / spokeCount) * Math.PI * 2;
+      spoke.castShadow = true;
+      wheel.add(spoke);
+    }
+    wheel.rotation.z = Math.PI / 2;
+    return wheel;
+  };
+
+  const rearZ = -BED_L / 2 + 0.5;
+  const frontZ = BED_L / 2 - 0.6;
+  [-1, 1].forEach((side) => {
+    const wheelX = side * (BED_W / 2 + 0.1);
+    const rear = buildWheel(REAR_R);
+    rear.position.set(wheelX, REAR_AXLE_Y, rearZ);
+    grp.add(rear);
+    const front = buildWheel(FRONT_R);
+    front.position.set(wheelX, FRONT_AXLE_Y, frontZ);
+    grp.add(front);
+  });
+
+  scene.add(grp);
+}
+
+/**
+ * Train tracks running along the far northern edge of town — well clear of
+ * the rock formation (centered (-48,38), reaching roughly z<=42) and the
+ * northern cacti (z<=40).
+ */
+function _addTrainTracks(scene) {
+  const TRACK_Z = 50;
+  const HALF_LEN = 55; // spans x from -55 to 55
+  const TIE_SPACING = 0.7;
+  const TIE_LEN = 1.8, TIE_W = 0.22, TIE_H = 0.12;
+  const GAUGE = 1.1;
+  const RAIL_W = 0.1, RAIL_H = 0.12;
+  const BED_Y = 0.05; // ballast top
+
+  const tieMat = new THREE.MeshLambertMaterial({ color: 0x3a2712 });
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x4a4640 });
+  const ballastMat = new THREE.MeshLambertMaterial({ color: 0x6a625a });
+
+  const ballast = new THREE.Mesh(
+    new THREE.BoxGeometry(HALF_LEN * 2 + 2, 0.1, TIE_LEN + 0.6),
+    ballastMat
+  );
+  ballast.position.set(0, BED_Y, TRACK_Z);
+  ballast.receiveShadow = true;
+  scene.add(ballast);
+
+  // Ties — instanced, since a 110-unit run at 0.7 spacing is ~157 of them.
+  const tieCount = Math.floor((HALF_LEN * 2) / TIE_SPACING);
+  const tieProto = new THREE.BoxGeometry(TIE_W, TIE_H, TIE_LEN);
+  const tieMesh = new THREE.InstancedMesh(tieProto, tieMat, tieCount);
+  tieMesh.castShadow = true;
+  tieMesh.receiveShadow = true;
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < tieCount; i++) {
+    const x = -HALF_LEN + i * TIE_SPACING;
+    m.makeTranslation(x, BED_Y + 0.05 + TIE_H / 2, TRACK_Z);
+    tieMesh.setMatrixAt(i, m);
+  }
+  tieMesh.instanceMatrix.needsUpdate = true;
+  scene.add(tieMesh);
+
+  // Rails — two long boxes resting on top of the ties, one mesh each.
+  const railY = BED_Y + 0.05 + TIE_H + RAIL_H / 2;
+  [-GAUGE / 2, GAUGE / 2].forEach((offset) => {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(HALF_LEN * 2, RAIL_H, RAIL_W), railMat);
+    rail.position.set(0, railY, TRACK_Z + offset);
+    rail.castShadow = true;
+    scene.add(rail);
+  });
+}
+
+/**
+ * Fenced animal corral with a couple of cows and a horse. Placed in the
+ * open field south of the district signs/kiosks (which end at z=-21), well
+ * clear of the west side road (x in [-24,-20]) and the old wagon just north
+ * of it.
+ */
+function _addAnimalFarm(scene) {
+  const CENTER_X = -10, CENTER_Z = -45;
+  const HALF_W = 6, HALF_D = 5;
+  const POST_H = 1.1;
+
+  const postMat = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x5c3a21 });
+
+  // Perimeter posts (instanced) — evenly spaced along each straight,
+  // axis-aligned edge; corners are shared between adjacent edges and
+  // de-duplicated below.
+  const postPositions = [];
+  const addEdgePosts = (x1, z1, x2, z2, spacing) => {
+    const len = Math.hypot(x2 - x1, z2 - z1);
+    const count = Math.max(2, Math.round(len / spacing) + 1);
+    for (let i = 0; i < count; i++) {
+      const t = i / (count - 1);
+      postPositions.push([x1 + (x2 - x1) * t, z1 + (z2 - z1) * t]);
+    }
+  };
+  addEdgePosts(-HALF_W, -HALF_D, HALF_W, -HALF_D, 2.4); // south
+  addEdgePosts(HALF_W, -HALF_D, HALF_W, HALF_D, 2.4);   // east
+  addEdgePosts(HALF_W, HALF_D, -HALF_W, HALF_D, 2.4);   // north
+  addEdgePosts(-HALF_W, HALF_D, -HALF_W, -HALF_D, 2.4); // west
+
+  const uniquePosts = [];
+  postPositions.forEach(([px, pz]) => {
+    const dup = uniquePosts.some(([qx, qz]) => Math.abs(px - qx) < 0.05 && Math.abs(pz - qz) < 0.05);
+    if (!dup) uniquePosts.push([px, pz]);
+  });
+
+  const postGeo = new THREE.BoxGeometry(0.14, POST_H, 0.14);
+  const postMesh = new THREE.InstancedMesh(postGeo, postMat, uniquePosts.length);
+  postMesh.castShadow = true;
+  const m = new THREE.Matrix4();
+  uniquePosts.forEach(([lx, lz], i) => {
+    m.makeTranslation(CENTER_X + lx, POST_H / 2, CENTER_Z + lz);
+    postMesh.setMatrixAt(i, m);
+  });
+  postMesh.instanceMatrix.needsUpdate = true;
+  scene.add(postMesh);
+
+  // Rails: 2 per side, all 4 sides axis-aligned so no rotation math is
+  // needed at all.
+  const addRailPair = (w, d, x, z) => {
+    [0.75, 0.45].forEach((railY) => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(w, 0.07, d), railMat);
+      rail.position.set(CENTER_X + x, railY, CENTER_Z + z);
+      rail.castShadow = true;
+      scene.add(rail);
+    });
+  };
+  addRailPair(HALF_W * 2 + 0.1, 0.07, 0, -HALF_D);
+  addRailPair(HALF_W * 2 + 0.1, 0.07, 0, HALF_D);
+  addRailPair(0.07, HALF_D * 2 + 0.1, -HALF_W, 0);
+  addRailPair(0.07, HALF_D * 2 + 0.1, HALF_W, 0);
+
+  _addCow(scene, CENTER_X - 2, CENTER_Z - 1, 0.3);
+  _addCow(scene, CENTER_X + 2.5, CENTER_Z + 1.5, -0.6);
+  _addHorse(scene, CENTER_X + 0.5, CENTER_Z - 2, 1.2);
+}
+
+function _addCow(scene, x, z, rotY) {
+  const grp = new THREE.Group();
+  grp.position.set(x, 0, z);
+  grp.rotation.y = rotY;
+
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0xe8e0d0 });
+  const patchMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+  const hoofMat = new THREE.MeshLambertMaterial({ color: 0x1a1208 });
+
+  const bx = (w, h, d, mat, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    grp.add(m);
+    return m;
+  };
+
+  bx(0.55, 0.5, 1.0, bodyMat, 0, 0.75, 0);
+  bx(0.2, 0.22, 0.3, patchMat, 0.2, 0.85, 0.25);
+  bx(0.18, 0.18, 0.25, patchMat, -0.15, 0.7, -0.2);
+  bx(0.32, 0.3, 0.34, bodyMat, 0, 0.95, 0.62);
+  bx(0.22, 0.16, 0.16, bodyMat, 0, 0.85, 0.82);
+  bx(0.14, 0.05, 0.1, bodyMat, 0.2, 1.08, 0.58);
+  bx(0.14, 0.05, 0.1, bodyMat, -0.2, 1.08, 0.58);
+  [[-0.2, -0.4], [0.2, -0.4], [-0.2, 0.35], [0.2, 0.35]].forEach(([lx, lz]) => {
+    bx(0.12, 0.5, 0.12, bodyMat, lx, 0.25, lz);
+    bx(0.13, 0.08, 0.13, hoofMat, lx, 0.04, lz);
+  });
+
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 6), bodyMat);
+  tail.rotation.x = 0.5;
+  tail.position.set(0, 0.7, -0.55);
+  tail.castShadow = true;
+  grp.add(tail);
+
+  scene.add(grp);
+}
+
+function _addHorse(scene, x, z, rotY) {
+  const grp = new THREE.Group();
+  grp.position.set(x, 0, z);
+  grp.rotation.y = rotY;
+
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x6b4423 });
+  const maneMat = new THREE.MeshLambertMaterial({ color: 0x2a1c10 });
+  const hoofMat = new THREE.MeshLambertMaterial({ color: 0x1a1208 });
+
+  const bx = (w, h, d, mat, x, y, z, rx = 0) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.rotation.x = rx;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    grp.add(m);
+    return m;
+  };
+
+  bx(0.5, 0.55, 1.2, bodyMat, 0, 1.05, 0);
+  bx(0.28, 0.55, 0.28, bodyMat, 0.05, 1.35, 0.65, -0.5);
+  bx(0.24, 0.24, 0.42, bodyMat, 0.05, 1.68, 0.95);
+  bx(0.08, 0.5, 0.28, maneMat, 0.05, 1.4, 0.55, -0.5);
+  bx(0.08, 0.14, 0.06, bodyMat, 0.16, 1.85, 0.85);
+  bx(0.08, 0.14, 0.06, bodyMat, -0.06, 1.85, 0.85);
+  [[-0.16, -0.5], [0.16, -0.5], [-0.16, 0.45], [0.16, 0.45]].forEach(([lx, lz]) => {
+    bx(0.11, 0.75, 0.11, bodyMat, lx, 0.38, lz);
+    bx(0.12, 0.08, 0.12, hoofMat, lx, 0.04, lz);
+  });
+  bx(0.1, 0.55, 0.08, maneMat, 0, 1.0, -0.65, 0.3);
 
   scene.add(grp);
 }

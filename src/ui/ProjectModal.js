@@ -1,4 +1,5 @@
 import { projects } from '../data/projects.js';
+import { renderProjectLink } from './linkRenderer.js';
 
 /**
  * ProjectPage — full-screen overlay that replaces the viewport when entering a building.
@@ -51,20 +52,17 @@ export class ProjectModal {
     document.getElementById('project-description').textContent = data.description;
 
     const tagsEl = document.getElementById('project-tags');
+    // Hidden (not just emptied) when there's nothing to show — an empty div
+    // still reserves its own margin-bottom, which left a large unexplained
+    // gap between the description and the links on projects with no tags
+    // (e.g. the github/linkedin contact entries).
+    tagsEl.style.display = data.tech.length ? '' : 'none';
     tagsEl.innerHTML = data.tech.length
       ? data.tech.map((t) => `<span class="tag">${t}</span>`).join('')
       : '';
 
     const linksEl = document.getElementById('project-links');
-    linksEl.innerHTML = data.links
-      .map(
-        ({ label, url, icon }) =>
-          `<a class="project-link" href="${url}" target="_blank" rel="noopener noreferrer">
-            <span class="link-icon">${icon}</span>${label}
-            <span class="link-ext">↗</span>
-          </a>`
-      )
-      .join('');
+    linksEl.innerHTML = data.links.map(renderProjectLink).join('');
 
     this.overlay.classList.add('open');
     this.isOpen = true;

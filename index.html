@@ -8,11 +8,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rye&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/ui/styles.css" />
+    <link rel="stylesheet" href="/src/ui/classic.css" />
   </head>
   <body>
-    <canvas id="canvas"></canvas>
-    <div id="hud"></div>
+    <button id="view-toggle" aria-label="Toggle between 3D town and classic site"></button>
+
+    <div id="scene-3d">
+      <canvas id="canvas"></canvas>
+      <div id="hud"></div>
+    </div>
+
     <div id="modal-overlay"></div>
+    <div id="classic-site" hidden></div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

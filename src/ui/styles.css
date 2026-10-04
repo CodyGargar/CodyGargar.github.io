@@ -26,7 +26,15 @@ body {
   left: 24px;
   color: #f5deb3;
   font-size: 1.4rem;
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+  /* A text-shadow alone washed out against the light sky color (#d4956a)
+     — both are warm, light tones with weak contrast. Give it the same kind
+     of opaque background chip #enter-prompt already uses, so it stays
+     readable over any part of the scene. */
+  background: rgba(40, 20, 0, 0.72);
+  border: 2px solid #c8a050;
+  border-radius: 6px;
+  padding: 6px 16px;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
   opacity: 0;
   transition: opacity 0.6s ease;
 }
@@ -203,6 +211,20 @@ body {
   background: #c8a050;
   color: #120800;
   border-color: #c8a050;
+}
+
+/* Placeholder link (no real URL yet) — visually present but not clickable,
+   instead of a live link that goes nowhere. */
+.project-link.disabled {
+  color: #8a7050;
+  border-color: #5a3e18;
+  cursor: default;
+  opacity: 0.7;
+}
+.project-link.disabled:hover {
+  background: none;
+  color: #8a7050;
+  border-color: #5a3e18;
 }
 
 .link-icon {

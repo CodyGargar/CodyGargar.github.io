@@ -20,6 +20,16 @@ const STORY_HEIGHT = 3.1;
 
 const _materialCache = new Map();
 
+// These four don't depend on cfg (fixed colors regardless of building), so
+// they're built once and shared across every storefront instead of getting
+// duplicated per building the way _buildMaterials used to do.
+const _roofMat = new THREE.MeshStandardMaterial({ color: 0x2e2620, roughness: 0.92, metalness: 0 });
+const _darkMat = new THREE.MeshStandardMaterial({ color: 0x1c1108, roughness: 0.85, metalness: 0 });
+const _glassMat = new THREE.MeshStandardMaterial({
+  color: 0x2a3530, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.75,
+});
+const _knobMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.4, metalness: 0.6 });
+
 export function createStorefront(config) {
   const cfg = {
     stories: 1,
@@ -133,15 +143,12 @@ function _buildMaterials(cfg) {
       roughnessMap: wood.roughnessMap, roughness: 0.9, metalness: 0,
     }),
     trim: new THREE.MeshStandardMaterial({ color: trimTint, roughness: 0.78, metalness: 0 }),
-    roof: new THREE.MeshStandardMaterial({ color: 0x2e2620, roughness: 0.92, metalness: 0 }),
-    dark: new THREE.MeshStandardMaterial({ color: 0x1c1108, roughness: 0.85, metalness: 0 }),
-    glass: new THREE.MeshStandardMaterial({
-      color: 0x2a3530, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.75,
-    }),
+    roof: _roofMat,
+    dark: _darkMat,
+    glass: _glassMat,
     boardwalk: new THREE.MeshStandardMaterial({ color: boardwalkTint, roughness: 0.88, metalness: 0 }),
     timber: new THREE.MeshStandardMaterial({ color: trimTint, roughness: 0.82, metalness: 0 }),
-    signPanel: new THREE.MeshStandardMaterial({ color: 0xf0e2b8, roughness: 0.6, metalness: 0 }),
-    knob: new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.4, metalness: 0.6 }),
+    knob: _knobMat,
   };
 }
 
@@ -395,7 +402,7 @@ function _buildPorchRoof(cfg, dims, mats, addStatic) {
   });
 }
 
-/** Recessed door + flanking double-hung windows + one upper false-front window. */
+/** Recessed door + flanking double-hung windows. (No upper false-front window — removed by request; the parapet trim reads as the "roof" instead.) */
 function _buildOpenings(cfg, dims, mats, addStatic) {
   const frontZ = cfg.depth / 2;
 
@@ -493,12 +500,19 @@ function _buildTimberInstances(cfg, dims, mats, rand) {
   const instances = [];
   const push = (pos, rot, scale) => instances.push({ pos, rot, scale });
 
-  // Porch posts, evenly spaced under the small porch roof, jittered ±2°
+  // Porch posts, evenly spaced under the small porch roof, jittered ±2°.
+  // postCount is rounded up to even: with an odd count, evenly spacing them
+  // across the span always puts one post dead-center — exactly where the
+  // door is — and the "skip the gap that straddles the door" check below
+  // (xa<0 && xb>0) can never match a boundary that sits exactly on 0, so
+  // fence rails ended up built flush against both sides of that post.
+  // Forcing an even count keeps the center a gap instead of a post.
   const postHeaderY = dims.headerY;
   const spanW = dims.porchWidth - 0.6;
+  const postCount = cfg.postCount % 2 === 0 ? cfg.postCount : cfg.postCount + 1;
   const postXs = [];
-  for (let i = 0; i < cfg.postCount; i++) {
-    const t = cfg.postCount === 1 ? 0.5 : i / (cfg.postCount - 1);
+  for (let i = 0; i < postCount; i++) {
+    const t = postCount === 1 ? 0.5 : i / (postCount - 1);
     const x = -spanW / 2 + t * spanW;
     postXs.push(x);
     push(
@@ -569,16 +583,24 @@ function _buildTimberInstances(cfg, dims, mats, rand) {
 function _buildPlankInstances(cfg, dims, mats, rand) {
   const plankThickness = 0.05;
   const nominalWidth = 0.22;
-  const count = Math.max(4, Math.round(dims.facadeWidth / nominalWidth));
+  // Actual plank widths vary (0.85-1.15x nominal), so the real count needed
+  // to cover facadeWidth can land on either side of this nominal estimate.
+  // Allocate generous headroom above it and track how many instances are
+  // ACTUALLY written, instead of always claiming the full estimate via
+  // mesh.count — that left leftover zero-matrix (degenerate) instances
+  // whenever the real count came in under budget, and could leave a visible
+  // gap at the far edge whenever it came in over budget.
+  const maxCount = Math.max(4, Math.ceil(dims.facadeWidth / (nominalWidth * 0.8)) + 2);
   const proto = new THREE.BoxGeometry(1, 1, 1);
-  const mesh = new THREE.InstancedMesh(proto, mats.boardwalk, count);
+  const mesh = new THREE.InstancedMesh(proto, mats.boardwalk, maxCount);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   let cursor = -dims.facadeWidth / 2;
-  for (let i = 0; i < count; i++) {
+  let written = 0;
+  for (let i = 0; i < maxCount; i++) {
     const w = nominalWidth * (0.85 + rand() * 0.3);
     const gap = 0.015;
     const x = cursor + w / 2;
@@ -589,11 +611,12 @@ function _buildPlankInstances(cfg, dims, mats, rand) {
       new THREE.Vector3(Math.max(w - gap, 0.02), plankThickness, cfg.porchDepth - 0.1)
     );
     mesh.setMatrixAt(i, m);
+    written++;
     cursor += w;
     if (cursor > dims.facadeWidth / 2) break;
   }
   mesh.instanceMatrix.needsUpdate = true;
-  mesh.count = count;
+  mesh.count = written;
   return mesh;
 }
 

@@ -23,6 +23,9 @@ export class Player {
     camera.lookAt(this.position.x, 1.5, this.position.z);
 
     this.keys = { up: false, down: false, left: false, right: false };
+    // Analog direction from the on-screen joystick (TouchControls), each
+    // axis in [-1, 1]. Keyboard input takes priority when both are active.
+    this.touchInput = { x: 0, z: 0 };
     // Set to false while the classic 2D site is showing, so WASD/arrow keys
     // don't fight the player for input and arrow keys are free to scroll
     // the page instead of being swallowed by preventDefault below.
@@ -180,17 +183,25 @@ export class Player {
    */
   update(delta, buildings, paused) {
     if (!paused) {
-      const dx = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
-      const dz = (this.keys.down ? 1 : 0) - (this.keys.up ? 1 : 0);
+      let dx = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+      let dz = (this.keys.down ? 1 : 0) - (this.keys.up ? 1 : 0);
+      let maxSpeed = SPEED;
+      if (dx === 0 && dz === 0) {
+        // Joystick: a partial push walks slower than a full one.
+        dx = this.touchInput.x;
+        dz = this.touchInput.z;
+        maxSpeed = SPEED * Math.min(1, Math.hypot(dx, dz));
+      }
       const moving = dx !== 0 || dz !== 0;
 
       if (moving) {
+        // Snap velocity onto the input direction (keeping current speed) so
+        // turning — including a full reversal — is instant rather than having
+        // to decelerate through zero first. Only the speed ramps up.
         const len = Math.hypot(dx, dz);
-        this.velocity.x += (dx / len) * ACCEL * delta;
-        this.velocity.y += (dz / len) * ACCEL * delta;
-        // clamp to max speed
-        const speed = this.velocity.length();
-        if (speed > SPEED) this.velocity.multiplyScalar(SPEED / speed);
+        const speed = Math.min(maxSpeed, this.velocity.length() + ACCEL * delta);
+        this.velocity.set((dx / len) * speed, (dz / len) * speed);
+        this.group.rotation.y = Math.atan2(dx, dz);
       } else {
         // decelerate
         const speed = this.velocity.length();
@@ -203,11 +214,6 @@ export class Player {
       const resolved = resolveCollision(desiredX, desiredZ, buildings);
       this.position.x = resolved.x;
       this.position.z = resolved.z;
-
-      // Face movement direction
-      if (this.velocity.length() > 0.5) {
-        this.group.rotation.y = Math.atan2(this.velocity.x, this.velocity.y);
-      }
     }
 
     this.group.position.copy(this.position);

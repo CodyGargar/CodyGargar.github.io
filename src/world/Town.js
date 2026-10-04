@@ -23,22 +23,29 @@ export function buildTown(scene) {
   _addRoad(scene, -22, 0, GROUND_SIZE, 4, false); // left north-south
   _addRoad(scene, 22, 0, GROUND_SIZE, 4, false);  // right north-south
 
-  // District signs
-  _addSign(scene, -30, -18, 'Software Gulch');
-  _addSign(scene, 30, -18, 'Hardware Frontier');
-  _addSign(scene, 0, -5, 'The Telegraph Office');
+  // District signs: ranch-gate archways over each side road where it meets
+  // Main Street, facing the camera (+Z) so they read from the spawn point.
+  _addArchSign(scene, -22, -4.6, 'Software Gulch');
+  _addArchSign(scene, 22, -4.6, 'Hardware Frontier');
 
   // Buildings
   // GitHub/LinkedIn/Devpost keep their real brand-logo facades, which the
   // Storefront generator doesn't model, so they stay on the plain Building
-  // class. Devpost sits in its own row south of the other two — the gap
-  // between github's and linkedin's roof overhangs (~4.8 units) is too
-  // narrow to fit a third same-sized kiosk at x=0 in that row without
-  // clipping both neighbors.
+  // class. Together with About Me they form one Main Street row between the
+  // side roads (x in [-20,20]): the three social booths side by side on the
+  // west half, About Me on the east half. Every front (booth roof overhangs,
+  // About Me's porch) lines up at z=-5.5, the same line as the storefronts
+  // in the other two districts.
+  //   booth: 5.5 wide + 1.2 roof overhang = 6.7, at a 7.6 pitch → x from -18.95 to 2.95
+  //   About Me: 11.8-wide facade at x=11.5 → x from 5.6 to 17.4
+  const BOOTH_Z = -8.5; // depth 5 → body front at -6, roof overhang front at -5.5
+  // District sign mounted on the middle booth's roof (height 6 + 0.4 roof),
+  // as a header over the row instead of a post blocking the logos.
+  _addRoofSign(scene, -8.0, BOOTH_Z + 2.2, 6.4, 'The Telegraph Office');
   const buildingDefs = [
-    { position: { x: -6, z: -18 },  color: 0x0d1117, projectId: 'github', logo: 'github', width: 6, depth: 5, height: 6 },
-    { position: { x: 6, z: -18 },   color: 0x0a66c2, projectId: 'linkedin', logo: 'linkedin', width: 6, depth: 5, height: 6 },
-    { position: { x: 0, z: -26 },   color: 0x003e53, projectId: 'devpost', logo: 'devpost', width: 6, depth: 5, height: 6 },
+    { position: { x: -15.6, z: BOOTH_Z }, color: 0x0d1117, projectId: 'github', logo: 'github', width: 5.5, depth: 5, height: 6 },
+    { position: { x: -8.0, z: BOOTH_Z }, color: 0x0a66c2, projectId: 'linkedin', logo: 'linkedin', width: 5.5, depth: 5, height: 6 },
+    { position: { x: -0.4, z: BOOTH_Z }, color: 0x003e53, projectId: 'devpost', logo: 'devpost', width: 5.5, depth: 5, height: 6 },
   ];
 
   // Project storefronts. Positions are chosen so that at scale 1.55
@@ -125,12 +132,11 @@ export function buildTown(scene) {
       hasHitchingRail: true,
       scale: 1.55,
     },
-    // "About Me" sits further south of the Devpost kiosk (which is itself
-    // at (0,-26)) — its own footprint plus porch reaches back toward +Z by
-    // roughly 7 units at this scale, so this gives clear separation from
-    // Devpost's southern edge (~z=-29) without touching it.
+    // "About Me" shares the Telegraph Office row with the social booths
+    // (see buildingDefs above); at z=-12.5 its porch front lands at z=-5.5
+    // like every other storefront on Main Street.
     {
-      position: { x: 0, z: -40 },
+      position: { x: 11.5, z: -12.5 },
       projectId: 'aboutMe',
       name: 'About Me',
       width: 7,
@@ -163,9 +169,10 @@ export function buildTown(scene) {
 
   // District zones: AABB regions keyed by name
   const districtZones = [
-    { name: 'Software Gulch',       minX: -55, maxX: -10, minZ: -55, maxZ: 55 },
-    { name: 'Hardware Frontier',    minX: 10,  maxX: 55,  minZ: -55, maxZ: 55 },
-    { name: 'The Telegraph Office', minX: -10, maxX: 10,  minZ: -55, maxZ: 0  },
+    // The Telegraph Office block runs between the two side roads.
+    { name: 'Software Gulch',       minX: -55, maxX: -20, minZ: -55, maxZ: 55 },
+    { name: 'Hardware Frontier',    minX: 20,  maxX: 55,  minZ: -55, maxZ: 55 },
+    { name: 'The Telegraph Office', minX: -20, maxX: 20,  minZ: -55, maxZ: 0  },
   ];
 
   return { buildings, districtZones };
@@ -182,36 +189,107 @@ function _addRoad(scene, cx, cz, length, width, isEW) {
   scene.add(mesh);
 }
 
-function _addSign(scene, x, z, text) {
-  // Tall post
-  const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 5, 8);
-  const postMat = new THREE.MeshLambertMaterial({ color: 0x5c3317 });
-  const post = new THREE.Mesh(postGeo, postMat);
-  post.position.set(x, 2.5, z);
-  scene.add(post);
+const _signWood = new THREE.MeshLambertMaterial({ color: 0x4a2c14 });
 
-  // Plank
-  const plankGeo = new THREE.BoxGeometry(5, 1, 0.2);
-  const plankMat = new THREE.MeshLambertMaterial({ color: 0x5c3317 });
-  const plank = new THREE.Mesh(plankGeo, plankMat);
-  plank.position.set(x, 5.2, z);
-  scene.add(plank);
+/**
+ * Sign board: a dark wood frame holding a cream panel with the text painted
+ * on both faces, so it reads from either side. Same look as the storefront
+ * signs (dark Rye lettering on cream), just much bigger.
+ */
+function _makeSignBoard(text, width, height) {
+  const board = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(width + 0.36, height + 0.36, 0.22), _signWood);
+  frame.castShadow = true;
+  board.add(frame);
 
-  // Canvas text
   const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 96;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#5c3317';
-  ctx.fillRect(0, 0, 512, 96);
-  ctx.fillStyle = '#ffcc66';
-  ctx.font = 'bold 30px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, 256, 48);
+  canvas.width = 1024;
+  canvas.height = Math.round(1024 * (height / width));
   const tex = new THREE.CanvasTexture(canvas);
-  const textGeo = new THREE.PlaneGeometry(4.8, 0.9);
-  const textMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
-  const textMesh = new THREE.Mesh(textGeo, textMat);
-  textMesh.position.set(x, 5.2, z + 0.12);
-  scene.add(textMesh);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8; // stays crisp when seen at an angle from the street
+
+  const draw = () => {
+    const ctx = canvas.getContext('2d');
+    const { width: cw, height: ch } = canvas;
+    ctx.fillStyle = '#f0e2b8';
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(14, 14, cw - 28, ch - 28);
+    // Largest Rye size that fits the panel with some side margin.
+    let size = ch * 0.62;
+    ctx.font = `${size}px "Rye", serif`;
+    const maxW = cw * 0.88;
+    const measured = ctx.measureText(text).width;
+    if (measured > maxW) {
+      size *= maxW / measured;
+      ctx.font = `${size}px "Rye", serif`;
+    }
+    ctx.fillStyle = '#241608';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, cw / 2, ch / 2 + size * 0.06);
+    tex.needsUpdate = true;
+  };
+  draw();
+  // The Rye webfont usually isn't loaded yet when the town is built, so the
+  // first draw falls back to a generic serif — redraw once it arrives.
+  document.fonts?.load(`64px "Rye"`).then(draw).catch(() => {});
+
+  // Unlit, so the lettering stays legible whichever way the sun hits it.
+  const panelMat = new THREE.MeshBasicMaterial({ map: tex });
+  for (const side of [1, -1]) {
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(width, height), panelMat);
+    panel.position.z = side * 0.115;
+    if (side < 0) panel.rotation.y = Math.PI;
+    board.add(panel);
+  }
+  return board;
+}
+
+/** Ranch-gate archway over a side road: two posts, a crossbeam, and a hanging sign. */
+function _addArchSign(scene, x, z, text) {
+  const grp = new THREE.Group();
+  grp.position.set(x, 0, z);
+  scene.add(grp);
+
+  const SPAN = 5.2; // post to post, just wider than the 4-unit side road
+  const POST_H = 7.2;
+  for (const side of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.4, POST_H, 0.4), _signWood);
+    post.position.set(side * SPAN / 2, POST_H / 2, 0);
+    post.castShadow = true;
+    grp.add(post);
+  }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(SPAN + 1.0, 0.4, 0.5), _signWood);
+  beam.position.y = POST_H - 0.2;
+  beam.castShadow = true;
+  grp.add(beam);
+
+  // Board hangs from the beam on two short chains/rods, high enough that
+  // the cowboy walks under it with room to spare.
+  const board = _makeSignBoard(text, 4.8, 1.3);
+  board.position.y = POST_H - 1.45;
+  grp.add(board);
+  for (const side of [-1, 1]) {
+    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), _signWood);
+    rod.position.set(side * 1.8, POST_H - 0.55, 0);
+    grp.add(rod);
+  }
+}
+
+/** Sign standing on a roof at height `roofY`, on two short posts. */
+function _addRoofSign(scene, x, z, roofY, text) {
+  const grp = new THREE.Group();
+  grp.position.set(x, roofY, z);
+  scene.add(grp);
+  for (const side of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.2), _signWood);
+    post.position.set(side * 2.2, 0.35, 0);
+    grp.add(post);
+  }
+  const board = _makeSignBoard(text, 5.4, 1.2);
+  board.position.y = 0.6 + 0.78;
+  grp.add(board);
 }

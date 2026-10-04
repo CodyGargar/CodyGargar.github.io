@@ -473,21 +473,30 @@ function _buildSign(cfg, dims, mats) {
 
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = Math.round(512 * (h / w));
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f0e2b8';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#3a2410';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
-  ctx.fillStyle = '#241608';
-  ctx.font = `bold ${Math.round(canvas.height * 0.4)}px "Rye", serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(cfg.signText || cfg.name || '', canvas.width / 2, canvas.height / 2 + 4);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const draw = () => {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f0e2b8';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.fillStyle = '#241608';
+    ctx.font = `bold ${Math.round(canvas.height * 0.4)}px "Rye", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(cfg.signText || cfg.name || '', canvas.width / 2, canvas.height / 2 + 4);
+    tex.needsUpdate = true;
+  };
+  draw();
+  // Rye usually hasn't finished loading when the town is built; redraw once
+  // it has, instead of keeping the generic-serif fallback.
+  document.fonts?.load(`32px "Rye"`).then(draw).catch(() => {});
 
   const panel = new THREE.Mesh(
     new THREE.PlaneGeometry(w, h),
-    new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), roughness: 0.6 })
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 })
   );
   panel.position.set(0, y, z + 0.045);
   group.add(panel);

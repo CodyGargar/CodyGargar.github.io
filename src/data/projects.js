@@ -107,3 +107,18 @@ export const projects = {
     ],
   },
 };
+
+/** Name + one-line headline shown at the top of the classic site. */
+export const profile = {
+  name: 'Edgar Arevalo',
+  headline: 'EECS @ MIT · Amazon SWE Intern',
+};
+
+/**
+ * Direct contact details, shown in the classic site's Contact section.
+ * Leave a field as '' to show it as "coming soon" instead of a live link.
+ */
+export const contact = {
+  email: '', // e.g. 'you@example.com'
+  phone: '', // e.g. '+1 (555) 123-4567'
+};

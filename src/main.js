@@ -6,11 +6,14 @@ import { nearestDoorBuilding } from './character/collision.js';
 import { HUD } from './ui/HUD.js';
 import { ProjectModal } from './ui/ProjectModal.js';
 import { ClassicSite } from './ui/ClassicSite.js';
+import { TouchControls, isTouchDevice } from './ui/TouchControls.js';
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Phones often report a 3x pixel ratio; rendering at 1.5x keeps the frame
+// rate up there with little visible difference on a small screen.
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouchDevice ? 1.5 : 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -21,6 +24,19 @@ scene.background = new THREE.Color(0xd4956a); // dusty amber sky
 scene.fog = new THREE.Fog(0xd4956a, 50, 110);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+
+// Three.js FOV is vertical, so on a portrait phone a fixed 60° leaves only
+// a sliver of the town visible side to side. Widen it until the horizontal
+// view is at least 60°, capped so it doesn't turn into a fisheye.
+function fitCameraFov() {
+  const aspect = window.innerWidth / window.innerHeight;
+  const minHorizontal = THREE.MathUtils.degToRad(60);
+  const vertical = 2 * Math.atan(Math.tan(minHorizontal / 2) / aspect);
+  camera.aspect = aspect;
+  camera.fov = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(vertical), 60, 85);
+  camera.updateProjectionMatrix();
+}
+fitCameraFov();
 camera.position.set(0, 7, 20);
 
 // ── Lighting ──────────────────────────────────────────────────────────────────
@@ -49,9 +65,10 @@ const player = new Player(camera);
 player.addTo(scene);
 
 // ── UI ────────────────────────────────────────────────────────────────────────
-const hud = new HUD();
+const hud = new HUD({ touch: isTouchDevice, onEnter: () => tryEnter() });
 const modal = new ProjectModal();
 const classicSite = new ClassicSite();
+if (isTouchDevice) new TouchControls(player);
 
 // player.enabled must reflect BOTH of these, not mode alone — otherwise,
 // while the project modal is open in 3D mode, WASD/arrow keydowns still
@@ -68,14 +85,14 @@ modal.onClose = () => { setPaused(false); };
 
 let nearBuilding = null;
 
+function tryEnter() {
+  if (mode !== '3d' || !nearBuilding || paused) return;
+  setPaused(true);
+  modal.open(nearBuilding.projectId);
+}
+
 window.addEventListener('keydown', (e) => {
-  if (mode !== '3d') return;
-  if (e.key === 'e' || e.key === 'E') {
-    if (nearBuilding && !paused) {
-      setPaused(true);
-      modal.open(nearBuilding.projectId);
-    }
-  }
+  if (e.key === 'e' || e.key === 'E') tryEnter();
 });
 
 // ── 3D / classic-site toggle ────────────────────────────────────────────────
@@ -111,8 +128,7 @@ applyMode();
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 function syncRendererSize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  fitCameraFov();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 window.addEventListener('resize', () => {
@@ -130,6 +146,7 @@ function loop() {
   const delta = Math.min(clock.getDelta(), 0.05);
 
   player.update(delta, buildings, paused);
+  if (player.velocity.lengthSq() > 1) hud.dismissHint();
   updateProps(delta);
 
   // District label

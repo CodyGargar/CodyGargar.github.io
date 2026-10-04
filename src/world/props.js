@@ -154,7 +154,8 @@ function _mulberry32(seed) {
 
 function _addBarrels(scene) {
   const positions = [
-    [-27, 9], [-27, 6], [27, 9], [27, 6], [-9, -22], [9, -22],
+    // The last two sit in the gap between the Devpost booth and About Me.
+    [-27, 9], [-27, 6], [27, 9], [27, 6], [4.1, -7.0], [4.5, -8.4],
   ];
   const woodMat = new THREE.MeshLambertMaterial({ color: 0x6b3a1f });
   const bandMat = new THREE.MeshLambertMaterial({ color: 0x4a4640 }); // weathered iron
@@ -385,10 +386,12 @@ function _addRockFormation(scene) {
 
 function _addRustedTruck(scene) {
   const grp = new THREE.Group();
-  // Parked north of the main road (which spans z in [-3,3]), near the east
-  // side street, far enough back that its yawed tailgate clears the road.
-  grp.position.set(14, 0, 7);
+  // Parked just off the main road (which spans z in [-3,3]), near the east
+  // side street. At 1.5× scale its yawed tailgate corner reaches z≈3.7, so
+  // z=8 keeps it clear of the road (it was z=7 at 1×).
+  grp.position.set(14, 0, 8);
   grp.rotation.y = Math.PI * 0.08; // slightly angled, like it's been sitting there a while
+  grp.scale.setScalar(1.5); // built from y=0, so the tires stay on the ground
 
   // Old 1950s-style stepside pickup: long narrow hood, rounded fenders that
   // stand proud of the body, running boards, and a short open bed.
@@ -662,8 +665,9 @@ function _addTRexSkeleton(scene) {
  */
 function _addOldWagon(scene) {
   const grp = new THREE.Group();
-  // Nudged back from z=-28 so the scaled-up tongue clears the barrel at (-9,-22).
-  grp.position.set(-10, 0, -29);
+  // Parked in the lot between the LinkedIn booth's back wall (z=-11) and
+  // the farm's front fence (z=-30.5): rear at z≈-25.9, tongue tip at z≈-17.8.
+  grp.position.set(-10, 0, -23);
   grp.rotation.y = 0.3;
   grp.scale.setScalar(1.5); // everything is built from y=0, so wheels stay on the ground
 
@@ -1273,15 +1277,15 @@ function _farmBox(parent, w, h, d, mat, x, y, z, rx = 0, rz = 0) {
 }
 
 /**
- * Fenced corral with a red barn, hay, a water trough, two cows, a horse,
- * and a few chickens. Sits in the open field behind the Telegraph Office
- * row (whose buildings end at z=-16.4), in front of the train tracks
- * (ballast from z=-54.8), centered between the side roads. The old wagon
- * at (-10,-29) is just ahead of its front fence. The gate faces town (+Z).
+ * Fenced ranch with a red barn, hay, a water trough, a pigsty, cows,
+ * horses, and chickens. Fills the open lot behind the Telegraph Office row:
+ * between the side roads (x in [-20,20]), from just behind the old wagon
+ * (rear at z≈-25.9) back to the train tracks (ballast from z=-54.8).
+ * The gate faces town (+Z).
  */
 function _addAnimalFarm(scene) {
-  const CENTER_X = 0, CENTER_Z = -44; // fence spans x -9.5..9.5, z -51.5..-36.5
-  const HALF_W = 9.5, HALF_D = 7.5;
+  const CENTER_X = 0, CENTER_Z = -41.5; // fence spans x -16.5..16.5, z -52.5..-30.5
+  const HALF_W = 16.5, HALF_D = 11;
   const POST_H = 1.5;
   const GATE_W = 2.6; // gap in the town-facing fence, centered on CENTER_X
 
@@ -1349,8 +1353,9 @@ function _addAnimalFarm(scene) {
   _farmBox(gate, braceLen, 0.09, 0.06, railMat, gateLen / 2, 0.85, 0.04, 0, Math.atan2(0.9, gateLen));
 
   // ── Barn (back-left corner, doors facing town) ─────────────────────────────
-  const BARN_SCALE = 1.3; // 5.7 × 4.7 footprint
-  _addBarn(farm, -HALF_W + 3.6, -HALF_D + 3.3, BARN_SCALE); // ~0.4 clear of the back/side fences
+  const BARN_SCALE = 1.6; // 7.0 × 5.8 footprint
+  const BARN_X = -HALF_W + 4.5, BARN_Z = -HALF_D + 4.0; // ~1 clear of the back/side fences
+  _addBarn(farm, BARN_X, BARN_Z, BARN_SCALE);
 
   // Hay bales stacked beside the barn, plus loose hay by its doors.
   const hayMat = new THREE.MeshLambertMaterial({ color: 0xd9b44a });
@@ -1363,33 +1368,227 @@ function _addAnimalFarm(scene) {
     _farmBox(b, 0.9, 0.5, 0.55, hayMat, 0, 0.25, 0);
     for (const tx of [-0.22, 0.22]) _farmBox(b, 0.03, 0.51, 0.56, twineMat, tx, 0.25, 0);
   };
-  bale(-2.4, 0, -6.6, 0);
-  bale(-1.45, 0, -6.65, 0.05);
-  bale(-1.95, 0.5, -6.6, -0.08);
-  bale(-0.6, 0, -5.9, 1.4);
-  bale(-2.0, 0, -5.4, 0.2);
-  _farmBox(farm, 1.8, 0.06, 1.1, hayMat, -HALF_W + 3.6, 0.05, -0.8);
+  // Stack beside the barn's east wall (x≈-8.5).
+  bale(-7.1, 0, -9.6, 0);
+  bale(-6.15, 0, -9.65, 0.05);
+  bale(-5.2, 0, -9.6, -0.04);
+  bale(-6.6, 0.5, -9.6, -0.08);
+  bale(-5.65, 0.5, -9.62, 0.06);
+  bale(-6.1, 1.0, -9.6, 0.02);
+  bale(-4.2, 0, -8.7, 1.4);
+  bale(-6.4, 0, -8.3, 0.2);
+  _farmBox(farm, 2.4, 0.06, 1.4, hayMat, BARN_X, 0.05, BARN_Z + 3.6); // loose hay at the doors
 
   // ── Water trough along the east fence ─────────────────────────────────────
   const wood = new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
   const water = new THREE.MeshLambertMaterial({ color: 0x4a7a8c });
-  _farmBox(farm, 0.75, 0.45, 2.6, wood, HALF_W - 1.0, 0.25, 1.5);
-  _farmBox(farm, 0.6, 0.04, 2.45, water, HALF_W - 1.0, 0.44, 1.5);
+  _farmBox(farm, 0.75, 0.45, 3.4, wood, HALF_W - 1.0, 0.25, 2.0);
+  _farmBox(farm, 0.6, 0.04, 3.25, water, HALF_W - 1.0, 0.44, 2.0);
+
+  // ── Windpump beside the trough, between it and the pigsty ─────────────────
+  // Base spans x 13.3..15.7, z -3.7..-1.3 (trough starts at z=0.3, sty ends at z=-5.2).
+  _addWindmill(farm, HALF_W - 2.0, -2.5);
+
+  // ── Pigsty (back-right corner): low pen around a mud wallow ───────────────
+  _addPigsty(farm, HALF_W - 4.3, -HALF_D + 3.4);
 
   // ── Animals ────────────────────────────────────────────────────────────────
   // Sized against the ~3-unit-tall cowboy rather than the old knee-high ones.
-  _addCow(farm, 4.5, -3.8, 0.6, 0);
-  _addCow(farm, 6.8, 1.0, Math.PI / 2, 2.1); // drinking at the trough
-  _addCow(farm, 1.6, -5.2, -0.8, 4.2);
-  _addHorse(farm, 0.8, 1.4, 2.3, 0x7a4a26, 0);
-  _addHorse(farm, 4.2, 4.6, -2.6, 0x2e2622, 2.7); // dark horse, no white socks
+  _addCow(farm, 6.0, -4.5, 0.6, 0);
+  _addCow(farm, 13.7, 2.0, Math.PI / 2, 2.1); // drinking at the trough
+  _addCow(farm, 1.5, -7.0, -0.8, 4.2);
+  _addCow(farm, 8.5, 6.0, 2.6, 6.3);
+  _addHorse(farm, -2.0, 1.5, 2.3, 0x7a4a26, 0);
+  _addHorse(farm, 3.0, 6.5, -2.6, 0x2e2622, 2.7); // dark horse, no white socks
+  _addHorse(farm, -3.2, -4.5, 0.9, 0xc8a060, 5.1); // palomino
 
   // Chickens scratch around in front of the barn, away from the big animals.
-  const chickenArea = { minX: -8.8, maxX: -3.0, minZ: -1.4, maxZ: 6.5 };
+  const chickenArea = { minX: -15.4, maxX: -7.0, minZ: -1.6, maxZ: 9.5 };
   [
-    [-7.6, 0.5, 0xf2ece0], [-5.0, 2.2, 0x9a5a2a], [-3.8, 0.2, 0xf2ece0],
-    [-6.4, 4.4, 0x9a5a2a], [-4.2, 5.6, 0xf2ece0], [-8.0, 3.0, 0x9a5a2a],
+    [-14.0, 0.5, 0xf2ece0], [-11.0, 2.2, 0x9a5a2a], [-8.5, 0.2, 0xf2ece0],
+    [-12.4, 5.4, 0x9a5a2a], [-9.2, 7.6, 0xf2ece0], [-14.5, 4.0, 0x9a5a2a],
+    [-10.4, 9.0, 0xf2ece0], [-7.8, 4.6, 0x9a5a2a],
   ].forEach(([x, z, color], i) => _addChicken(farm, x, z, color, chickenArea, i));
+}
+
+/**
+ * Western windpump: a tapered steel lattice tower with a many-bladed wheel
+ * and tail vane on top, and a pump at its foot piping water to the trough.
+ * The wheel spins with gentle gusts, the head yaws a little, and the pump
+ * rod strokes up and down with the wheel. The wheel faces town (+Z).
+ */
+function _addWindmill(parent, x, z) {
+  const mill = new THREE.Group();
+  mill.position.set(x, 0, z);
+  parent.add(mill);
+
+  const steel = new THREE.MeshLambertMaterial({ color: 0x8a8f94 });
+  const bladeMat = new THREE.MeshLambertMaterial({ color: 0xc8ccd0, side: THREE.DoubleSide });
+  const vaneMat = new THREE.MeshLambertMaterial({ color: 0x9a2a1e });
+  const white = new THREE.MeshLambertMaterial({ color: 0xe8e0d0 });
+  const wood = new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
+  const concrete = new THREE.MeshLambertMaterial({ color: 0x9a948a });
+
+  const H = 11; // tower height
+  const BASE = 1.2, TOP = 0.25; // half-widths of the tower at ground and top
+
+  // ── Tower: every leg and brace is one instance of a unit cylinder ─────────
+  const struts = [];
+  const strut = (a, b, r) => struts.push({ a, b, r });
+  const corner = (sx, sz, t) => {
+    const half = THREE.MathUtils.lerp(BASE, TOP, t);
+    return new THREE.Vector3(sx * half, t * H, sz * half);
+  };
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (const [sx, sz] of corners) strut(corner(sx, sz, 0), corner(sx, sz, 1), 0.06); // legs
+  const levels = [0, 0.22, 0.42, 0.6, 0.76, 0.9];
+  levels.forEach((t, li) => {
+    for (let i = 0; i < 4; i++) {
+      const [ax, az] = corners[i], [bx, bz] = corners[(i + 1) % 4];
+      if (t > 0) strut(corner(ax, az, t), corner(bx, bz, t), 0.035); // horizontal ring
+      if (li + 1 < levels.length) {
+        const t2 = levels[li + 1];
+        strut(corner(ax, az, t), corner(bx, bz, t2), 0.025); // X braces on each face
+        strut(corner(bx, bz, t), corner(ax, az, t2), 0.025);
+      }
+    }
+  });
+  const strutMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), steel, struts.length);
+  strutMesh.castShadow = true;
+  const up = new THREE.Vector3(0, 1, 0);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), mid = new THREE.Vector3(), dir = new THREE.Vector3();
+  struts.forEach(({ a, b, r }, i) => {
+    dir.subVectors(b, a);
+    const len = dir.length();
+    q.setFromUnitVectors(up, dir.normalize());
+    mid.addVectors(a, b).multiplyScalar(0.5);
+    m.compose(mid, q, new THREE.Vector3(r, len, r));
+    strutMesh.setMatrixAt(i, m);
+  });
+  strutMesh.instanceMatrix.needsUpdate = true;
+  mill.add(strutMesh);
+
+  for (const [sx, sz] of corners) _farmBox(mill, 0.4, 0.2, 0.4, concrete, sx * BASE, 0.1, sz * BASE); // footings
+  _farmBox(mill, 1.1, 0.08, 1.1, wood, 0, H - 0.9, 0); // service platform
+
+  // ── Head: gearbox, wheel, and tail vane, yawing as one unit ───────────────
+  const head = new THREE.Group();
+  head.position.y = H + 0.25;
+  mill.add(head);
+  _farmBox(head, 0.45, 0.4, 0.8, steel, 0, 0, 0);
+  _farmBox(head, 0.12, 0.5, 0.12, steel, 0, -0.35, 0); // mast into the tower top
+
+  const wheel = new THREE.Group();
+  wheel.position.z = 0.55;
+  head.add(wheel);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.25, 10), steel);
+  hub.rotation.x = Math.PI / 2;
+  wheel.add(hub);
+  const R_IN = 0.35, R_OUT = 2.1, BLADES = 18;
+  const bladeGeo = new THREE.BoxGeometry(0.3, R_OUT - R_IN, 0.02);
+  for (let i = 0; i < BLADES; i++) {
+    const arm = new THREE.Group();
+    arm.rotation.z = (i / BLADES) * Math.PI * 2;
+    wheel.add(arm);
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.position.y = (R_IN + R_OUT) / 2;
+    blade.rotation.y = 0.4; // pitched, like a real windpump sail
+    blade.castShadow = true;
+    arm.add(blade);
+  }
+  for (const r of [R_OUT - 0.05, (R_IN + R_OUT) / 2]) {
+    wheel.add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.03, 4, 36), steel)); // rim rings
+  }
+
+  _farmBox(head, 0.06, 0.06, 2.4, steel, 0, 0.05, -1.5); // tail boom
+  const vane = _farmBox(head, 0.04, 1.0, 1.5, vaneMat, 0, 0.25, -3.0);
+  _farmBox(head, 0.05, 0.14, 1.5, white, 0, 0.25, -3.0); // white stripe across the vane
+  vane.castShadow = true;
+
+  // ── Pump: rod down the middle of the tower, pump head, pipe to the trough ─
+  const rod = _farmBox(mill, 0.05, H - 1.2, 0.05, steel, 0, (H - 1.2) / 2 + 0.6, 0);
+  _farmBox(mill, 0.35, 0.7, 0.35, steel, 0, 0.35, 0); // pump head
+  _farmBox(mill, 0.12, 0.12, 2.6, steel, 0.6, 0.12, 1.5); // pipe toward the trough
+  _farmBox(mill, 0.5, 0.12, 0.12, steel, 0.3, 0.12, 0.2);
+
+  let spin = 0;
+  _animators.push((delta, time) => {
+    const gust = 1 + 0.35 * Math.sin(time * 0.31) + 0.15 * Math.sin(time * 1.13);
+    spin += delta * 1.6 * gust;
+    wheel.rotation.z = -spin;
+    head.rotation.y = Math.sin(time * 0.17) * 0.18; // drifts with the wind
+    rod.position.y = (H - 1.2) / 2 + 0.6 + Math.sin(spin) * 0.12; // pump stroke
+  });
+}
+
+/** Low-railed pen with a mud wallow and three rooting pigs, centered at (x, z). */
+function _addPigsty(parent, x, z) {
+  const sty = new THREE.Group();
+  sty.position.set(x, 0, z);
+  parent.add(sty);
+
+  const HW = 3.0, HD = 2.4;
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x5c3a21 });
+  const mud = new THREE.Mesh(
+    new THREE.CircleGeometry(1, 20),
+    new THREE.MeshLambertMaterial({ color: 0x4e3420 })
+  );
+  mud.rotation.x = -Math.PI / 2;
+  mud.scale.set(HW * 0.8, HD * 0.75, 1);
+  mud.position.y = 0.03;
+  mud.receiveShadow = true;
+  sty.add(mud);
+
+  for (const [cx, cz] of [[-HW, -HD], [HW, -HD], [-HW, HD], [HW, HD], [0, -HD], [0, HD], [-HW, 0], [HW, 0]]) {
+    _farmBox(sty, 0.14, 0.85, 0.14, railMat, cx, 0.42, cz);
+  }
+  for (const ry of [0.35, 0.7]) {
+    _farmBox(sty, HW * 2, 0.07, 0.06, railMat, 0, ry, -HD);
+    _farmBox(sty, HW * 2, 0.07, 0.06, railMat, 0, ry, HD);
+    _farmBox(sty, 0.06, 0.07, HD * 2, railMat, -HW, ry, 0);
+    _farmBox(sty, 0.06, 0.07, HD * 2, railMat, HW, ry, 0);
+  }
+
+  _addPig(sty, -1.2, -0.4, 0.8, 0);
+  _addPig(sty, 1.1, 0.6, -2.2, 1.7);
+  _addPig(sty, 0.4, -1.3, 2.9, 3.3);
+}
+
+/** Pink pig that roots its snout at the ground and wags its curly tail. */
+function _addPig(parent, x, z, rotY, phase) {
+  const pig = new THREE.Group();
+  pig.position.set(x, 0, z);
+  pig.rotation.y = rotY;
+  pig.scale.setScalar(1.25);
+  parent.add(pig);
+
+  const skin = new THREE.MeshLambertMaterial({ color: 0xe8a8a0 });
+  const snoutMat = new THREE.MeshLambertMaterial({ color: 0xd4848a });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x2a1a14 });
+
+  _farmBox(pig, 0.5, 0.42, 0.8, skin, 0, 0.44, 0);
+  for (const [lx, lz] of [[-0.15, -0.28], [0.15, -0.28], [-0.15, 0.28], [0.15, 0.28]]) {
+    _farmBox(pig, 0.12, 0.24, 0.12, skin, lx, 0.12, lz);
+  }
+  const head = new THREE.Group();
+  head.position.set(0, 0.5, 0.4);
+  pig.add(head);
+  _farmBox(head, 0.36, 0.34, 0.26, skin, 0, 0, 0.1);
+  _farmBox(head, 0.18, 0.14, 0.08, snoutMat, 0, -0.04, 0.26);
+  for (const side of [-1, 1]) {
+    _farmBox(head, 0.03, 0.04, 0.02, dark, side * 0.04, -0.04, 0.305); // nostrils
+    _farmBox(head, 0.04, 0.04, 0.02, dark, side * 0.1, 0.08, 0.235); // eyes
+    _farmBox(head, 0.12, 0.04, 0.1, skin, side * 0.14, 0.17, 0.04, 0.4); // floppy ears
+  }
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.02, 5, 10), skin);
+  tail.position.set(0, 0.6, -0.42);
+  pig.add(tail);
+
+  _animators.push((delta, time) => {
+    const t = time + phase;
+    head.rotation.x = 0.25 + Math.max(0, Math.sin(t * 1.6)) * 0.35; // rooting
+    tail.rotation.z = t * 6; // spinning curl reads as a wag
+  });
 }
 
 /** Small red barn with white trim; local +Z is the front (doors). */
@@ -1665,17 +1864,19 @@ function _addChicken(parent, x, z, color, area, seed) {
 
 // ── Pond ──────────────────────────────────────────────────────────────────────
 /**
- * Farm pond in the open lot behind About Me (whose back wall is at z=-16.4),
- * in front of the corral fence (z=-36.5) and west of the east side road
- * (x >= 20). Flat water decals with rocks, cattails, lily pads, a small
- * dock, ripples, and a few ducks paddling in slow loops.
+ * Pond on the open ground south of Main Street (road edge at z=3), west of
+ * the T-Rex plaza at (0,18) and east of the west side road (x <= -20); its
+ * bank spans roughly x -18.6..-2.4, z 11.3..22.7. Flat water decals with
+ * rocks, cattails, lily pads, a small dock, ripples, and ducks paddling in
+ * slow loops.
  */
 function _addPond(scene) {
   const grp = new THREE.Group();
-  grp.position.set(11.5, 0, -27.5);
+  grp.position.set(-10.5, 0, 17);
   scene.add(grp);
 
-  const RX = 4.6, RZ = 3.2; // water half-extents
+  const RX = 6.9, RZ = 4.8; // water half-extents
+  const S = RX / 4.6; // decoration scale relative to the original 4.6 × 3.2 pond
 
   // Irregular blob outline: an ellipse with a few fixed sine wobbles, so the
   // shoreline looks natural but is identical on every load.
@@ -1711,8 +1912,8 @@ function _addPond(scene) {
   [[0.3, 0.42], [1.1, 0.3], [1.9, 0.5], [2.6, 0.26], [3.4, 0.38], [4.3, 0.3], [5.0, 0.46], [5.8, 0.28]]
     .forEach(([a, r], i) => {
       const rock = new THREE.Mesh(rockGeo, rockMats[i % 3]);
-      rock.position.set(Math.cos(a) * RX * 1.12, r * 0.35, Math.sin(a) * RZ * 1.12);
-      rock.scale.set(r * 1.3, r, r * 1.1);
+      rock.position.set(Math.cos(a) * RX * 1.12, r * S * 0.35, Math.sin(a) * RZ * 1.12);
+      rock.scale.set(r * 1.3 * S, r * S, r * 1.1 * S);
       rock.rotation.y = i * 1.7;
       rock.castShadow = true;
       rock.receiveShadow = true;
@@ -1727,8 +1928,8 @@ function _addPond(scene) {
     const clump = new THREE.Group();
     clump.position.set(Math.cos(a) * RX * 0.95, 0, Math.sin(a) * RZ * 0.95);
     grp.add(clump);
-    for (let i = 0; i < 7; i++) {
-      const ox = Math.sin(i * 2.3 + seed) * 0.4, oz = Math.cos(i * 1.7 + seed) * 0.3;
+    for (let i = 0; i < 9; i++) {
+      const ox = Math.sin(i * 2.3 + seed) * 0.4 * S, oz = Math.cos(i * 1.7 + seed) * 0.3 * S;
       const h = 1.1 + ((i * 37 + seed * 11) % 10) * 0.06;
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, h, 5), stemMat);
       stem.position.set(ox, h / 2, oz);
@@ -1749,13 +1950,13 @@ function _addPond(scene) {
   const flowerMat = new THREE.MeshLambertMaterial({ color: 0xf2a6c0 });
   [[-2.2, 1.0, 0.32, true], [-1.6, 1.6, 0.26, false], [-2.8, 0.2, 0.22, false], [1.8, -1.4, 0.3, true], [2.5, -0.8, 0.24, false]]
     .forEach(([px, pz, r, flower], i) => {
-      const pad = new THREE.Mesh(new THREE.CircleGeometry(r, 14, 0.3, Math.PI * 2 - 0.6), padMat);
+      const pad = new THREE.Mesh(new THREE.CircleGeometry(r * S, 14, 0.3, Math.PI * 2 - 0.6), padMat);
       pad.rotation.set(-Math.PI / 2, 0, i * 1.3);
-      pad.position.set(px, 0.065, pz);
+      pad.position.set(px * S, 0.065, pz * S);
       grp.add(pad);
       if (flower) {
-        const bloom = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.12, 6), flowerMat);
-        bloom.position.set(px, 0.12, pz);
+        const bloom = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.14, 6), flowerMat);
+        bloom.position.set(px * S, 0.12, pz * S);
         grp.add(bloom);
       }
     });
@@ -1763,8 +1964,10 @@ function _addPond(scene) {
   // Small dock jutting in from the town-facing (+Z) bank.
   const plankMat = new THREE.MeshLambertMaterial({ color: 0x8a6a43 });
   const postMat = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
-  const DOCK_X = 1.4, DOCK_START = RZ * 1.2, DOCK_LEN = 2.0; // ends short of the ducks' widest loop
-  for (let i = 0; i < 5; i++) {
+  // Dock on the south (+Z) bank, nearest the camera, reaching into the water
+  // but ending short of the ducks' widest loop.
+  const DOCK_X = 2.1, DOCK_START = RZ * 1.2, DOCK_LEN = 2.8;
+  for (let i = 0; i < 7; i++) {
     const plank = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.08, 0.36), plankMat);
     plank.position.set(DOCK_X, 0.32, DOCK_START - 0.2 - i * 0.4);
     plank.castShadow = true;
@@ -1784,7 +1987,7 @@ function _addPond(scene) {
   const duckBody = new THREE.MeshLambertMaterial({ color: 0x8a6a4a });
   const duckHeadMat = new THREE.MeshLambertMaterial({ color: 0x2f6a3a }); // mallard green
   const beakMat = new THREE.MeshLambertMaterial({ color: 0xe8a62a });
-  const ducks = [[0.0, 0.5, 0], [Math.PI, 0.38, 1], [2.0, 0.55, 2]].map(([start, loop, i]) => {
+  const ducks = [[0.0, 0.5, 0], [Math.PI, 0.38, 1], [2.0, 0.55, 2], [4.2, 0.3, 3]].map(([start, loop, i]) => {
     const duck = new THREE.Group();
     grp.add(duck);
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.18, 0.4), duckBody);

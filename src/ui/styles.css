@@ -306,3 +306,63 @@ button#enter-prompt {
   #project-header { padding: 12px 16px; }
   #project-main { padding: 36px 16px 56px; }
 }
+
+/* ── Project badges (classic cards + 3D project page) ───────────────────── */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #5a3e18;
+  background: #24130a;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #e0cca0;
+  white-space: nowrap;
+}
+.badge-event { border-color: #8a6a2e; color: #ffdd88; }
+.badge-award { background: #c8a050; border-color: #c8a050; color: #120800; }
+.badge-live { border-color: #3f7a4a; color: #9fd8a8; }
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5fd27a;
+  box-shadow: 0 0 6px #5fd27a;
+}
+#project-badges .badges { margin: -12px 0 24px; }
+
+/* ── Project page media: video + photo grid ─────────────────────────────── */
+#project-media:empty { display: none; }
+#project-media { margin-top: 40px; display: grid; gap: 16px; }
+.project-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #3a2208;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+.project-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.project-photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.project-photos a { display: block; border-radius: 8px; overflow: hidden; border: 1px solid #3a2208; }
+.project-photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+.project-photos a:hover img { transform: scale(1.04); }

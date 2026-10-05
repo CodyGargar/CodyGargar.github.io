@@ -1,5 +1,6 @@
 import { projects, profile, contact } from '../data/projects.js';
 import { renderProjectLink } from './linkRenderer.js';
+import { renderBadges } from './badges.js';
 
 // Short tab labels for the town's districts. Any district not listed here
 // still gets a tab, labeled with its full district name.
@@ -39,6 +40,13 @@ export class ClassicSite {
       if (!grouped[p.district]) { grouped[p.district] = []; districtOrder.push(p.district); }
       grouped[p.district].push(p);
     }
+    // Strongest projects first within each tab (see `rank` in projects.js).
+    const byRank = (a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity);
+    for (const list of Object.values(grouped)) list.sort(byRank);
+
+    const featured = Object.values(projects)
+      .filter((p) => p.featured)
+      .sort((a, b) => a.featured - b.featured);
 
     const tabs = districtOrder.map((district, i) => ({
       district,
@@ -61,6 +69,16 @@ export class ClassicSite {
         </header>
 
         <main class="classic-main">
+          ${featured.length ? `
+            <section class="classic-featured" aria-labelledby="classic-featured-title">
+              <h2 class="classic-section-title" id="classic-featured-title">Featured</h2>
+              <div class="classic-featured-grid">
+                ${featured.map((p) => this._card(p, { featured: true })).join('')}
+              </div>
+            </section>
+          ` : ''}
+
+          <h2 class="classic-section-title">All projects</h2>
           <div class="classic-tabs" role="tablist" aria-label="Project categories">
             ${tabs.map((t) => `
               <button class="classic-tab" role="tab" id="${t.id}" aria-controls="${t.panelId}"
@@ -115,6 +133,7 @@ export class ClassicSite {
 
     this._initTabs(tabs);
     this._initCopyButtons();
+    this._initGalleries();
   }
 
   _initTabs(tabs) {
@@ -166,6 +185,42 @@ export class ClassicSite {
     }
   }
 
+  /** Thumbnail clicks swap that card's cover photo (one delegated listener for every card). */
+  _initGalleries() {
+    this.container.addEventListener('click', (e) => {
+      const thumb = e.target.closest('.classic-thumb');
+      if (!thumb) return;
+      const media = thumb.closest('.classic-card-media');
+      const cover = media.querySelector('.classic-card-cover');
+      cover.src = thumb.dataset.src;
+      cover.alt = thumb.dataset.alt;
+      cover.style.objectPosition = thumb.dataset.focus;
+      for (const t of media.querySelectorAll('.classic-thumb')) t.classList.toggle('is-active', t === thumb);
+    });
+  }
+
+  _media(p) {
+    const images = p.images ?? [];
+    if (!images.length) return '';
+    const [first] = images;
+    const focus = (img) => img.focus ?? 'center';
+    const thumbs = images.length > 1
+      ? `<div class="classic-card-thumbs">${images.map((img, i) => `
+          <button type="button" class="classic-thumb${i === 0 ? ' is-active' : ''}"
+            data-src="${img.src}" data-alt="${img.alt}" data-focus="${focus(img)}" aria-label="Show photo ${i + 1} of ${images.length}">
+            <img src="${img.src}" alt="" loading="lazy" decoding="async" style="object-position: ${focus(img)}" />
+          </button>`).join('')}
+        </div>`
+      : '';
+    return `
+      <figure class="classic-card-media">
+        <img class="classic-card-cover" src="${first.src}" alt="${first.alt}" loading="lazy" decoding="async"
+          style="object-position: ${focus(first)}" />
+        ${thumbs}
+      </figure>
+    `;
+  }
+
   _contactItem({ label, icon, value, href, copy = false, external = false }) {
     const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
     const body = value
@@ -186,7 +241,7 @@ export class ClassicSite {
     `;
   }
 
-  _card(p) {
+  _card(p, { featured = false } = {}) {
     const tags = p.tech.length
       ? `<div class="classic-tags">${p.tech.map((t) => `<span class="tag">${t}</span>`).join('')}</div>`
       : '';
@@ -201,12 +256,17 @@ export class ClassicSite {
       ? `<p class="classic-card-pending">${pending.map((l) => l.label).join(' · ')} coming soon</p>`
       : '';
     return `
-      <article class="classic-card">
-        <h3 class="classic-card-title">${p.title}</h3>
-        <p class="classic-card-desc">${p.description}</p>
-        ${tags}
-        ${liveHtml}
-        ${pendingHtml}
+      <article class="classic-card${featured ? ' is-featured' : ''}${p.images?.length ? ' has-media' : ''}">
+        ${this._media(p)}
+        <div class="classic-card-body">
+          ${featured ? `<p class="classic-card-district">${TAB_LABELS[p.district] ?? p.district}</p>` : ''}
+          <h3 class="classic-card-title">${p.title}</h3>
+          ${renderBadges(p)}
+          <p class="classic-card-desc">${p.description}</p>
+          ${tags}
+          ${liveHtml}
+          ${pendingHtml}
+        </div>
       </article>
     `;
   }

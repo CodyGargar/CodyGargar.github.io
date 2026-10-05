@@ -182,6 +182,23 @@ export function buildTown(scene) {
       hasHitchingRail: false,
       scale: 1.3,
     },
+    // Hardware Frontier back row, mirroring Software Gulch's: behind Assist
+    // (back wall at z=-16.4), reached from the east side road.
+    {
+      position: { x: 31, z: -31.5 },
+      projectId: 'brainBuddy',
+      name: 'Brain Buddy',
+      width: 7,
+      stories: 1,
+      parapetStyle: 'curved',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'board-batten',
+      woodTint: 0xa8786a,
+      signText: 'Brain Buddy',
+      hasHitchingRail: true,
+      scale: 1.55,
+    },
     // "About Me" shares the Telegraph Office row with the social booths
     // (see buildingDefs above); at z=-12.5 its porch front lands at z=-5.5
     // like every other storefront on Main Street.

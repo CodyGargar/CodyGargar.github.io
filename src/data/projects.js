@@ -191,10 +191,10 @@ export const projects = {
     title: 'Devpost',
     district: 'The Telegraph Office',
     description:
-      "See the hackathon submissions behind ArthAi, Assist, FirstStep AI, and PitPerfect — write-ups, demos, and the teams that built them.",
+      "See the hackathon submissions behind ArthAi and PitPerfect — write-ups, demos, and the teams that built them.",
     tech: [],
     links: [
-      { label: 'Visit Devpost', url: 'https://devpost.com', icon: '⬡' },
+      { label: 'Visit Devpost', url: 'https://devpost.com/edgararevalo9310', icon: '⬡' },
     ],
   },
   aboutMe: {

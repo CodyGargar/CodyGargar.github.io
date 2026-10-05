@@ -10,6 +10,18 @@ const TAB_LABELS = {
 };
 const TAB_STORAGE_KEY = 'classicTab';
 
+// Skills strip groups, built from every project's `tech` tags. Within a group,
+// skills used by more projects come first (ties keep this listed order). Any
+// tag not listed here still shows up, under "Other", rather than vanishing.
+const SKILL_GROUPS = [
+  ['Languages', ['Python', 'JavaScript', 'TypeScript', 'C++', 'Java', 'HTML', 'CSS']],
+  ['Web & frameworks', ['React', 'Next.js', 'Node.js', 'Express', 'FastAPI', 'Three.js', 'SQLite', 'Swing', 'SEO']],
+  ['AI & computer vision', ['Claude API', 'Gemini API', 'OpenCV', 'MediaPipe', 'TensorFlow', 'Web Speech API']],
+  ['Hardware & embedded', ['ESP32', 'Raspberry Pi', 'ROS', 'PlatformIO', 'IMU', 'GPS', '3D Printing']],
+];
+// Tags that describe a category or a sub-library rather than a skill of their own.
+const SKILL_SKIP = new Set(['Hardware', 'AWT']);
+
 const hasUrl = (link) => link.url && link.url !== '#';
 // "https://www.github.com/foo/" -> "github.com/foo"
 const displayUrl = (url) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
@@ -69,6 +81,8 @@ export class ClassicSite {
         </header>
 
         <main class="classic-main">
+          ${this._skills()}
+
           ${featured.length ? `
             <section class="classic-featured" aria-labelledby="classic-featured-title">
               <h2 class="classic-section-title" id="classic-featured-title">Featured</h2>
@@ -183,6 +197,38 @@ export class ClassicSite {
         btn._resetTimer = setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
       });
     }
+  }
+
+  _skills() {
+    const counts = new Map();
+    for (const p of Object.values(projects)) {
+      for (const t of p.tech ?? []) if (!SKILL_SKIP.has(t)) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    const grouped = new Set(SKILL_GROUPS.flatMap(([, tags]) => tags));
+    const groups = [
+      ...SKILL_GROUPS,
+      ['Other', [...counts.keys()].filter((t) => !grouped.has(t))],
+    ];
+    const rows = groups
+      .map(([label, tags]) => {
+        const present = tags
+          .filter((t) => counts.has(t))
+          .sort((a, b) => counts.get(b) - counts.get(a) || tags.indexOf(a) - tags.indexOf(b));
+        if (!present.length) return '';
+        const chips = present.map((t) => {
+          const n = counts.get(t);
+          const title = `Used in ${n} project${n === 1 ? '' : 's'}`;
+          return `<span class="skill" title="${title}">${t}${n > 1 ? `<span class="skill-count" aria-label="${title}">${n}</span>` : ''}</span>`;
+        }).join('');
+        return `<div class="classic-skills-row"><p class="classic-skills-label">${label}</p><div class="classic-skills-chips">${chips}</div></div>`;
+      })
+      .join('');
+    return `
+      <section class="classic-skills" aria-labelledby="classic-skills-title">
+        <h2 class="classic-section-title" id="classic-skills-title">Skills</h2>
+        ${rows}
+      </section>
+    `;
   }
 
   /** Thumbnail clicks swap that card's cover photo (one delegated listener for every card). */

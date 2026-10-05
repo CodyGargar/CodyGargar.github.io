@@ -366,3 +366,20 @@ button#enter-prompt {
   transition: transform 0.25s ease;
 }
 .project-photos a:hover img { transform: scale(1.04); }
+
+/* ── 3D town loading state (while the town chunk downloads) ─────────────── */
+#scene-3d { background: #d4956a; } /* sky color, so there's no flash before the first frame */
+#town-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  font-family: 'Rye', serif;
+  font-size: 1.4rem;
+  color: #3a1e08;
+  pointer-events: none;
+}
+#town-loading[hidden] { display: none; }

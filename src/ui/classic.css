@@ -116,6 +116,58 @@
   padding: 56px 32px 40px;
 }
 
+/* ── Skills strip ──────────────────────────────────────────────────────────── */
+.classic-skills { margin-bottom: 56px; }
+
+.classic-skills-row {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px dashed #2e1a08;
+}
+.classic-skills-row:last-child { border-bottom: none; }
+
+.classic-skills-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c8a050;
+}
+
+.classic-skills-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid #5a3e18;
+  border-radius: 6px;
+  background: #1a0d02;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.9rem;
+  color: #f0dfb8;
+}
+.skill-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #c8a050;
+  color: #120800;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .classic-skills-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
 /* ── Card photos: cover image + thumbnail strip ───────────────────────────── */
 .classic-card-media {
   margin: -24px -24px 18px; /* bleed to the card's edges (card padding is 24px) */

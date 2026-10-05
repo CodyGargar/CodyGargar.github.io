@@ -132,6 +132,56 @@ export function buildTown(scene) {
       hasHitchingRail: true,
       scale: 1.55,
     },
+    // Software Gulch back row, behind FirstStep AI and PitPerfect (whose
+    // back walls are at z=-16.4): fronts at z≈-24.5 leave an 8-unit lane
+    // between the rows, reached from the west side road.
+    {
+      position: { x: -31, z: -31.5 },
+      projectId: 'arevalosAuto',
+      name: "Arevalo's Auto Repair",
+      width: 7,
+      stories: 1,
+      parapetStyle: 'flat',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'board-batten',
+      woodTint: 0x8a5a3a,
+      signText: "Arevalo's Auto",
+      hasHitchingRail: false,
+      scale: 1.55,
+    },
+    {
+      position: { x: -46, z: -31.5 },
+      projectId: 'billSplit',
+      name: 'Bill Split',
+      width: 7,
+      stories: 1,
+      parapetStyle: 'stepped',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'lap',
+      woodTint: 0xa88a5a,
+      signText: 'Bill Split',
+      hasHitchingRail: true,
+      scale: 1.55,
+    },
+    // South of Main Street beside Particle AI (x -45.9..-34.1), like it
+    // facing away from the road: x -56.3..-47.7 at this scale and width.
+    {
+      position: { x: -52, z: 10 },
+      projectId: 'shootySpace',
+      name: 'Shooty Space Game',
+      width: 6,
+      stories: 1,
+      parapetStyle: 'curved',
+      porchDepth: 2.0,
+      postCount: 4,
+      sidingType: 'lap',
+      woodTint: 0x7a6a8a,
+      signText: 'Shooty Space',
+      hasHitchingRail: false,
+      scale: 1.3,
+    },
     // "About Me" shares the Telegraph Office row with the social booths
     // (see buildingDefs above); at z=-12.5 its porch front lands at z=-5.5
     // like every other storefront on Main Street.

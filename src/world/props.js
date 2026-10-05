@@ -18,7 +18,7 @@ export function addProps(scene) {
 
 function _addCacti(scene) {
   const positions = [
-    [-50, -40], [-48, 20], [-45, 35], [50, -35], [48, 15], [44, 40],
+    [-50, -40], [-47, 25], [-45, 35], [50, -35], [48, 15], [44, 40],
     [-55, 5], [55, -10],
   ];
   // [trunk, flower] color sets — cycled for natural variation. Only 3

@@ -483,10 +483,19 @@ function _buildSign(cfg, dims, mats) {
     ctx.lineWidth = 6;
     ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
     ctx.fillStyle = '#241608';
-    ctx.font = `bold ${Math.round(canvas.height * 0.4)}px "Rye", serif`;
+    const text = cfg.signText || cfg.name || '';
+    // Shrink longer names to fit inside the border instead of overflowing it.
+    let size = Math.round(canvas.height * 0.4);
+    ctx.font = `bold ${size}px "Rye", serif`;
+    const maxW = canvas.width - 40;
+    const measured = ctx.measureText(text).width;
+    if (measured > maxW) {
+      size = Math.floor(size * maxW / measured);
+      ctx.font = `bold ${size}px "Rye", serif`;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(cfg.signText || cfg.name || '', canvas.width / 2, canvas.height / 2 + 4);
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 4);
     tex.needsUpdate = true;
   };
   draw();

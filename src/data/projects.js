@@ -207,7 +207,7 @@ export const projects = {
     links: [
       { label: 'GitHub', url: 'https://github.com/CodyGargar', icon: '⌥' },
       { label: 'LinkedIn', url: 'https://www.linkedin.com/in/edgar--arevalo/', icon: '↗' },
-      { label: 'This site', url: 'https://github.com/CodyGargar/portfolio-town', icon: '⌥' },
+      { label: 'This site', url: 'https://github.com/CodyGargar/CodyGargar.github.io', icon: '⌥' },
     ],
   },
 };

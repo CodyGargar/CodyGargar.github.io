@@ -15,9 +15,9 @@ const TAB_STORAGE_KEY = 'classicTab';
 // tag not listed here still shows up, under "Other", rather than vanishing.
 const SKILL_GROUPS = [
   ['Languages', ['Python', 'JavaScript', 'TypeScript', 'C++', 'Java', 'HTML', 'CSS']],
-  ['Web & frameworks', ['React', 'Next.js', 'Node.js', 'Express', 'FastAPI', 'Three.js', 'SQLite', 'Swing', 'SEO']],
+  ['Web & frameworks', ['React', 'Next.js', 'Node.js', 'Express', 'Vite', 'FastAPI', 'Three.js', 'WebSockets', 'Google Maps API', 'SQLite', 'Swing', 'SEO']],
   ['AI & computer vision', ['Claude API', 'Gemini API', 'OpenCV', 'MediaPipe', 'TensorFlow', 'Web Speech API']],
-  ['Hardware & embedded', ['ESP32', 'Raspberry Pi', 'ROS', 'PlatformIO', 'IMU', 'GPS', '3D Printing']],
+  ['Hardware & embedded', ['ESP32', 'Raspberry Pi', 'IMU', 'ToF sensor', 'GPS', 'PlatformIO', '3D Printing']],
 ];
 // Tags that describe a category or a sub-library rather than a skill of their own.
 const SKILL_SKIP = new Set(['Hardware', 'AWT']);

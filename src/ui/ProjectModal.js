@@ -70,14 +70,21 @@ export class ProjectModal {
     const linksEl = document.getElementById('project-links');
     linksEl.innerHTML = data.links.map(renderProjectLink).join('');
 
-    // Video (privacy-enhanced embed) and photo grid; each photo opens full size.
-    const video = data.youtube
-      ? `<div class="project-video"><iframe src="https://www.youtube-nocookie.com/embed/${data.youtube}"
+    // Video (YouTube privacy-enhanced embed, or a Google Drive file shared
+    // "anyone with the link") and photo grid; each photo opens full size.
+    const videoSrc = data.video?.youtube
+      ? `https://www.youtube-nocookie.com/embed/${data.video.youtube}`
+      : data.video?.drive
+        ? `https://drive.google.com/file/d/${data.video.drive}/preview`
+        : null;
+    const video = videoSrc
+      ? `<div class="project-video"><iframe src="${videoSrc}"
           title="${data.title} video" loading="lazy" allowfullscreen
-          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
       : '';
     const photos = data.images?.length
-      ? `<div class="project-photos">${data.images.map((img) => `
+      // Three photos sit in one row; otherwise two per row (no lone leftover).
+      ? `<div class="project-photos" style="--cols: ${data.images.length === 3 ? 3 : 2}">${data.images.map((img) => `
           <a href="${img.src}" target="_blank" rel="noopener"><img src="${img.src}" alt="${img.alt}" loading="lazy"
             style="object-position: ${img.focus ?? 'center'}" /></a>`).join('')}
         </div>`

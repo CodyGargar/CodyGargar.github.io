@@ -16,7 +16,7 @@ const asset = (path) => `${import.meta.env.BASE_URL}${path}`;
  *   featured  if set, shown in the Featured row, in this order
  *   images    [{ src, alt, focus? }] photos under public/, first one is the cover;
  *             focus is a CSS object-position for crops, e.g. 'center 25%'
- *   youtube   YouTube video id, embedded on the 3D project page
+ *   video     { youtube: id } or { drive: fileId }, embedded on the 3D project page
  * A link labeled 'Live …' (e.g. 'Live site', 'Live demo') earns a "Live" badge.
  */
 export const projects = {
@@ -78,11 +78,18 @@ export const projects = {
     event: 'FormLabs Hackathon · IAP 2026',
     rank: 3,
     description:
-      'Robotic feeding arm that uses ROS and computer vision to help users with limited upper-body mobility eat independently.',
-    tech: ['ROS', 'Python', '3D Printing', 'OpenCV'],
+      'Low-cost assistive feeding arm for people with limited upper-body mobility, as an alternative to commercial self-feeders that cost $12,000. A modular, SLA-printed robotic arm driven by servos, with a Raspberry Pi running OpenCV to find the food in the bowl and an ESP32 streaming orientation (IMU) and distance (time-of-flight) data to a live WebSocket dashboard.',
+    tech: ['Raspberry Pi', 'ESP32', 'OpenCV', 'Python', 'WebSockets', 'IMU', 'ToF sensor', '3D Printing'],
     links: [
+      { label: 'Video', url: 'https://drive.google.com/file/d/1s6CYXcES-QpVup5RGgft5dH5uYx9sM4U/view', icon: '▶' },
+      { label: 'Slides', url: 'https://docs.google.com/presentation/d/1DyMY9vCogocKcQsvg-Js0Xm4p55geTrJmzGpMTutfSI/view', icon: '▤' },
       { label: 'GitHub',  url: '#', icon: '⌥' },
-      { label: 'Devpost', url: '#', icon: '⬡' },
+    ],
+    video: { drive: '1s6CYXcES-QpVup5RGgft5dH5uYx9sM4U' },
+    images: [
+      { src: asset('projects/assist/arm-cad.jpg'), alt: 'CAD render of the Assist robotic feeding arm' },
+      { src: asset('projects/assist/opencv-food-detection.jpg'), alt: 'OpenCV view from the arm camera finding the food in a bowl, with tuning sliders below' },
+      { src: asset('projects/assist/sensor-dashboard.jpg'), alt: 'Live IMU and time-of-flight WebSocket dashboard, with a 3D cube and a 3D model following the sensor orientation' },
     ],
   },
   brainBuddy: {
@@ -101,7 +108,7 @@ export const projects = {
       { label: 'Video', url: 'https://youtu.be/PGITm6_xXBQ', icon: '▶' },
       { label: 'GitHub', url: 'https://github.com/jpt1729/hackmit', icon: '⌥' },
     ],
-    youtube: 'PGITm6_xXBQ',
+    video: { youtube: 'PGITm6_xXBQ' },
     images: [
       { src: asset('projects/brain-buddy/wristband-reminder.jpg'), alt: 'Brain Buddy wristband on a wrist, its LED ring glowing and OLED showing a reminder, in front of the project slide' },
       { src: asset('projects/brain-buddy/wristband-lit.jpg'), alt: 'Brain Buddy wristband with its green LED ring lit, wired to the prototype electronics' },
@@ -113,14 +120,14 @@ export const projects = {
     id: 'firstStep',
     title: 'FirstStep AI',
     district: 'Software Gulch',
-    kind: 'Hackathon project',
+    event: 'Claude Sprint Hackathon',
+    team: 2,
     rank: 5,
     description:
-      'Gait analysis system that uses a Raspberry Pi camera and TensorFlow pose estimation to detect walking irregularities and deliver rehabilitation feedback in real time.',
-    tech: ['TensorFlow', 'Raspberry Pi', 'OpenCV', 'Python'],
+      'AI-powered support navigator that helps students and community members go from "I need help" to "I know exactly what to do next." A short guided planner asks about needs, urgency, and barriers, then recommends scholarships, emergency aid, tutoring, career, and community resources ranked by fit and how hard they are to access, with a best first step, a backup, copyable outreach messages, a local resource map, and English/Spanish support.',
+    tech: ['React', 'Vite', 'Express', 'Node.js', 'Claude API', 'Google Maps API', 'JavaScript'],
     links: [
-      { label: 'GitHub',  url: '#', icon: '⌥' },
-      { label: 'Devpost', url: '#', icon: '⬡' },
+      { label: 'GitHub', url: 'https://github.com/ctrl-is/FirstStep-AI', icon: '⌥' },
     ],
   },
   arevalosAuto: {
@@ -202,7 +209,7 @@ export const projects = {
     title: 'About Me',
     district: 'The Telegraph Office',
     description:
-      "EECS student at MIT, currently interning as a Software Engineer at Amazon. Most of what's in this town got built over a single sleepless hackathon weekend — robotic arms, gait trackers, rehab gloves, F1 pit-strategy AI — usually aimed at rehabilitation, accessibility, or just making something a little less tedious. Always tinkering with the next one.",
+      "EECS student at MIT, currently interning as a Software Engineer at Amazon. Most of what's in this town got built over a single sleepless hackathon weekend — robotic arms, rehab gloves, dementia-care wristbands, F1 pit-strategy AI — usually aimed at rehabilitation, accessibility, or just making something a little less tedious. Always tinkering with the next one.",
     tech: [],
     links: [
       { label: 'GitHub', url: 'https://github.com/CodyGargar', icon: '⌥' },
